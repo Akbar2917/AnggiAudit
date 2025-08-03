@@ -615,7 +615,8 @@
                 const usersSnapshot = await get(ref(database, 'users'));
                 if (!usersSnapshot.exists()) {
                     await set(ref(database, 'users'), [
-                   
+                        { username: 'admin', password: 'admin123' }
+
                     ]);
                 }
 
@@ -623,7 +624,7 @@
                 const productsSnapshot = await get(ref(database, 'products'));
                 if (!productsSnapshot.exists()) {
                     const sampleProducts = [
-
+                        { }
                     ];
                     await set(ref(database, 'products'), sampleProducts);
                 }
@@ -1674,4 +1675,5 @@
     </script>
 </body>
 </html>
+
 
