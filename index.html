@@ -615,7 +615,7 @@
                 const usersSnapshot = await get(ref(database, 'users'));
                 if (!usersSnapshot.exists()) {
                     await set(ref(database, 'users'), [
-                        { username: 'admin', password: 'admin123' }
+                   
                     ]);
                 }
 
@@ -623,10 +623,7 @@
                 const productsSnapshot = await get(ref(database, 'products'));
                 if (!productsSnapshot.exists()) {
                     const sampleProducts = [
-                        { id: 1, name: 'Kaos Polos', price: 75000, cost: 45000, stock: 50, category: 'pakaian' },
-                        { id: 2, name: 'Kemeja Formal', price: 150000, cost: 90000, stock: 30, category: 'pakaian' },
-                        { id: 3, name: 'Celana Jeans', price: 200000, cost: 120000, stock: 25, category: 'pakaian' },
-                        { id: 4, name: 'Sepatu Sneakers', price: 350000, cost: 250000, stock: 20, category: 'sepatu' }
+
                     ];
                     await set(ref(database, 'products'), sampleProducts);
                 }
@@ -1677,3 +1674,4 @@
     </script>
 </body>
 </html>
+
