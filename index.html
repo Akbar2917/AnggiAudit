@@ -34,12 +34,6 @@
             </div>
             <h2 class="text-2xl font-bold text-center mb-6">Login Admin</h2>
             <form id="login-form" class="space-y-4">
-                <div class="flex justify-between items-center">
-                    <p class="text-sm text-gray-600">Belum punya akun?</p>
-                    <button type="button" id="show-register" class="text-blue-600 hover:text-blue-800 text-sm">
-                        Daftar disini
-                    </button>
-                </div>
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
                     <input type="text" id="username" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
@@ -55,39 +49,7 @@
         </div>
     </div>
 
-    <!-- Register Modal -->
-    <div id="register-modal" class="hidden fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 z-50">
-        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
-            <div class="flex justify-center mb-6">
-                <svg class="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
-                </svg>
-            </div>
-            <h2 class="text-2xl font-bold text-center mb-6">Daftar Akun Baru</h2>
-            <form id="register-form" class="space-y-4">
-                <div>
-                    <label for="reg-username" class="block text-sm font-medium text-gray-700">Username</label>
-                    <input type="text" id="reg-username" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div>
-                    <label for="reg-password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="reg-password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div>
-                    <label for="reg-confirm-password" class="block text-sm font-medium text-gray-700">Konfirmasi Password</label>
-                    <input type="password" id="reg-confirm-password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button type="button" id="cancel-register" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                        Batal
-                    </button>
-                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-                        Daftar
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+
 
     <!-- Main Layout -->
     <div id="main-app" class="hidden min-h-screen flex">
@@ -201,24 +163,37 @@
             <div id="daily-transaction-content" class="hidden">
                 <div class="flex justify-between items-center mb-8">
                     <h1 class="text-3xl font-bold">Transaksi Harian</h1>
-                    <button id="add-transaction-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                        + Tambah Transaksi
-                    </button>
+                    <div class="flex space-x-3">
+                        <button id="manage-expenses-btn" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700">
+                            📊 Kelola Biaya
+                        </button>
+                        <button id="add-transaction-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            + Tambah Transaksi
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Transaction Summary Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-gray-500 font-medium">Total Penjualan Hari Ini</h3>
-                        <p class="text-2xl font-bold text-green-600" id="daily-revenue">Rp0</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <h3 class="text-gray-500 font-medium text-sm">Total Penjualan</h3>
+                        <p class="text-xl font-bold text-green-600" id="daily-revenue">Rp0</p>
                     </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-gray-500 font-medium">Modal Hari Ini</h3>
-                        <p class="text-2xl font-bold text-red-600" id="daily-cost">Rp0</p>
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <h3 class="text-gray-500 font-medium text-sm">Modal</h3>
+                        <p class="text-xl font-bold text-red-600" id="daily-cost">Rp0</p>
                     </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-gray-500 font-medium">Keuntungan Bersih</h3>
-                        <p class="text-2xl font-bold text-blue-600" id="daily-net-profit">Rp0</p>
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <h3 class="text-gray-500 font-medium text-sm">Keuntungan Kotor</h3>
+                        <p class="text-xl font-bold text-blue-600" id="daily-gross-profit">Rp0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <h3 class="text-gray-500 font-medium text-sm">Biaya Operasional</h3>
+                        <p class="text-xl font-bold text-orange-600" id="daily-expenses">Rp0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <h3 class="text-gray-500 font-medium text-sm">Keuntungan Bersih</h3>
+                        <p class="text-xl font-bold text-purple-600" id="daily-net-profit">Rp0</p>
                     </div>
                 </div>
 
@@ -233,6 +208,66 @@
                         <button id="today-transaction-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
                             Hari Ini
                         </button>
+                    </div>
+                </div>
+
+                <!-- Expenses Modal -->
+                <div id="expenses-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+                    <div class="bg-white p-8 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold">Kelola Biaya Operasional</h2>
+                            <button id="close-expenses-modal" class="text-gray-500 hover:text-gray-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label for="expense-date" class="block text-sm font-medium text-gray-700">Tanggal</label>
+                            <input type="date" id="expense-date" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+
+                        <form id="expenses-form">
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="tax-expense" class="block text-sm font-medium text-gray-700">Pajak (Rp)</label>
+                                    <input type="number" id="tax-expense" min="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="ads-expense" class="block text-sm font-medium text-gray-700">Iklan & Marketing (Rp)</label>
+                                    <input type="number" id="ads-expense" min="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="rent-expense" class="block text-sm font-medium text-gray-700">Sewa Tempat (Rp)</label>
+                                    <input type="number" id="rent-expense" min="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="utility-expense" class="block text-sm font-medium text-gray-700">Listrik & Utilitas (Rp)</label>
+                                    <input type="number" id="utility-expense" min="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="shipping-expense" class="block text-sm font-medium text-gray-700">Ongkos Kirim (Rp)</label>
+                                    <input type="number" id="shipping-expense" min="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="other-expense" class="block text-sm font-medium text-gray-700">Biaya Lainnya (Rp)</label>
+                                    <input type="number" id="other-expense" min="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="expense-notes" class="block text-sm font-medium text-gray-700">Catatan</label>
+                                    <textarea id="expense-notes" rows="2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                                </div>
+                            </div>
+                            <div class="mt-6 flex justify-end space-x-3">
+                                <button type="button" id="cancel-expenses" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                                    Batal
+                                </button>
+                                <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700">
+                                    Simpan Biaya
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
 
@@ -503,7 +538,7 @@
                     </div>
 
                     <!-- Summary Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                         <div class="bg-green-50 p-4 rounded-lg">
                             <h4 class="text-sm font-medium text-green-800">Total Pendapatan</h4>
                             <p class="text-2xl font-bold text-green-600" id="total-revenue">Rp0</p>
@@ -512,8 +547,12 @@
                             <h4 class="text-sm font-medium text-red-800">Total Modal</h4>
                             <p class="text-2xl font-bold text-red-600" id="total-cost">Rp0</p>
                         </div>
+                        <div class="bg-orange-50 p-4 rounded-lg">
+                            <h4 class="text-sm font-medium text-orange-800">Total Biaya Operasional</h4>
+                            <p class="text-2xl font-bold text-orange-600" id="total-expenses">Rp0</p>
+                        </div>
                         <div class="bg-blue-50 p-4 rounded-lg">
-                            <h4 class="text-sm font-medium text-blue-800">Total Keuntungan</h4>
+                            <h4 class="text-sm font-medium text-blue-800">Total Keuntungan Bersih</h4>
                             <p class="text-2xl font-bold text-blue-600" id="total-profit">Rp0</p>
                         </div>
                     </div>
@@ -525,8 +564,9 @@
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pendapatan</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modal</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keuntungan</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Transaksi</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Biaya Operasional</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keuntungan Bersih</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaksi</th>
                                 </tr>
                             </thead>
                             <tbody id="profit-table-body" class="bg-white divide-y divide-gray-200">
@@ -638,12 +678,6 @@
             const stockContent = document.getElementById('stock-content');
             const profitContent = document.getElementById('profit-content');
             
-            // Register modal elements
-            const registerModal = document.getElementById('register-modal');
-            const showRegisterBtn = document.getElementById('show-register');
-            const cancelRegisterBtn = document.getElementById('cancel-register');
-            const registerForm = document.getElementById('register-form');
-            
             // Transaction elements
             const addTransactionBtn = document.getElementById('add-transaction-btn');
             const transactionModal = document.getElementById('transaction-modal');
@@ -653,6 +687,12 @@
             const transactionProductSelect = document.getElementById('transaction-product');
             const transactionType = document.getElementById('transaction-type');
             const salePriceContainer = document.getElementById('sale-price-container');
+            
+            // Expenses elements
+            const manageExpensesBtn = document.getElementById('manage-expenses-btn');
+            const expensesModal = document.getElementById('expenses-modal');
+            const closeExpensesModal = document.getElementById('close-expenses-modal');
+            const expensesForm = document.getElementById('expenses-form');
             
             // Products elements
             const addProductBtn = document.getElementById('add-product-btn');
@@ -673,54 +713,7 @@
             // Set today's date as default
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('transaction-date').value = today;
-
-            // Register modal toggle
-            showRegisterBtn.addEventListener('click', function() {
-                loginScreen.classList.add('hidden');
-                registerModal.classList.remove('hidden');
-            });
-
-            cancelRegisterBtn.addEventListener('click', function() {
-                registerModal.classList.add('hidden');
-                loginScreen.classList.remove('hidden');
-            });
-
-            // Register handler
-            registerForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const username = document.getElementById('reg-username').value;
-                const password = document.getElementById('reg-password').value;
-                const confirmPassword = document.getElementById('reg-confirm-password').value;
-                
-                if (password !== confirmPassword) {
-                    alert('Password dan konfirmasi password tidak sama!');
-                    return;
-                }
-                
-                try {
-                    const snapshot = await get(ref(database, 'users'));
-                    const users = snapshot.val() || [];
-                    
-                    if (users.some(u => u.username === username)) {
-                        alert('Username sudah terdaftar!');
-                        return;
-                    }
-                    
-                    users.push({ username, password });
-                    await set(ref(database, 'users'), users);
-                    
-                    alert('Pendaftaran berhasil! Silakan login.');
-                    registerModal.classList.add('hidden');
-                    loginScreen.classList.remove('hidden');
-                    document.getElementById('username').value = username;
-                    document.getElementById('password').value = '';
-                    registerForm.reset();
-                } catch (error) {
-                    console.error("Gagal mendaftar pengguna:", error);
-                    alert('Terjadi kesalahan saat mendaftar. Silakan coba lagi.');
-                }
-            });
+            document.getElementById('expense-date').value = today;
 
             // Login handler
             loginForm.addEventListener('submit', async function(e) {
@@ -796,6 +789,68 @@
                 hideAllContent();
                 profitContent.classList.remove('hidden');
                 loadProfitData();
+            });
+            
+            // Expenses management
+            manageExpensesBtn.addEventListener('click', function() {
+                expensesForm.reset();
+                document.getElementById('expense-date').value = document.getElementById('transaction-date').value;
+                loadCurrentExpenses();
+                expensesModal.classList.remove('hidden');
+            });
+            
+            closeExpensesModal.addEventListener('click', function() {
+                expensesModal.classList.add('hidden');
+            });
+            
+            document.getElementById('cancel-expenses').addEventListener('click', function() {
+                expensesModal.classList.add('hidden');
+            });
+            
+            // Expenses form handler
+            expensesForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const expenseDate = document.getElementById('expense-date').value;
+                const taxExpense = parseInt(document.getElementById('tax-expense').value) || 0;
+                const adsExpense = parseInt(document.getElementById('ads-expense').value) || 0;
+                const rentExpense = parseInt(document.getElementById('rent-expense').value) || 0;
+                const utilityExpense = parseInt(document.getElementById('utility-expense').value) || 0;
+                const shippingExpense = parseInt(document.getElementById('shipping-expense').value) || 0;
+                const otherExpense = parseInt(document.getElementById('other-expense').value) || 0;
+                const expenseNotes = document.getElementById('expense-notes').value;
+                
+                const totalExpenses = taxExpense + adsExpense + rentExpense + utilityExpense + shippingExpense + otherExpense;
+                
+                try {
+                    const expenseData = {
+                        date: expenseDate,
+                        tax: taxExpense,
+                        ads: adsExpense,
+                        rent: rentExpense,
+                        utility: utilityExpense,
+                        shipping: shippingExpense,
+                        other: otherExpense,
+                        total: totalExpenses,
+                        notes: expenseNotes,
+                        timestamp: Date.now(),
+                        user: 'Admin'
+                    };
+                    
+                    await set(ref(database, `expenses/${expenseDate}`), expenseData);
+                    
+                    alert('Biaya operasional berhasil disimpan!');
+                    expensesModal.classList.add('hidden');
+                    
+                    // Reload transaction data if viewing the same date
+                    if (document.getElementById('transaction-date').value === expenseDate) {
+                        loadDailyTransactions();
+                    }
+                    loadDashboard();
+                } catch (error) {
+                    console.error("Gagal menyimpan biaya operasional:", error);
+                    alert('Terjadi kesalahan saat menyimpan biaya.');
+                }
             });
             
             // Transaction management
@@ -1117,6 +1172,26 @@
                 }
             }
 
+            async function loadCurrentExpenses() {
+                try {
+                    const selectedDate = document.getElementById('expense-date').value;
+                    const expenseSnapshot = await get(ref(database, `expenses/${selectedDate}`));
+                    
+                    if (expenseSnapshot.exists()) {
+                        const expenses = expenseSnapshot.val();
+                        document.getElementById('tax-expense').value = expenses.tax || 0;
+                        document.getElementById('ads-expense').value = expenses.ads || 0;
+                        document.getElementById('rent-expense').value = expenses.rent || 0;
+                        document.getElementById('utility-expense').value = expenses.utility || 0;
+                        document.getElementById('shipping-expense').value = expenses.shipping || 0;
+                        document.getElementById('other-expense').value = expenses.other || 0;
+                        document.getElementById('expense-notes').value = expenses.notes || '';
+                    }
+                } catch (error) {
+                    console.error("Gagal mengambil data biaya:", error);
+                }
+            }
+
             async function loadDashboard() {
                 try {
                     const productsSnapshot = await get(ref(database, 'products'));
@@ -1128,15 +1203,23 @@
                     const today = new Date().toISOString().split('T')[0];
                     const todayTransactions = allTransactions.filter(t => t.date === today && t.type === 'out');
                     
+                    // Get today's expenses
+                    const expenseSnapshot = await get(ref(database, `expenses/${today}`));
+                    const todayExpenses = expenseSnapshot.exists() ? expenseSnapshot.val().total : 0;
+                    
                     // Update summary cards
                     document.getElementById('total-products').textContent = products.length;
                     
                     const lowStockCount = products.filter(p => p.stock < 10).length;
                     document.getElementById('low-stock').textContent = lowStockCount;
                     
-                    // Calculate today's profit
-                    const todayProfit = todayTransactions.reduce((sum, t) => sum + (t.profit || 0), 0);
-                    document.getElementById('today-profit').textContent = 'Rp' + todayProfit.toLocaleString('id-ID');
+                    // Calculate today's profit (gross profit - expenses)
+                    const todayRevenue = todayTransactions.reduce((sum, t) => sum + t.total, 0);
+                    const todayCost = todayTransactions.reduce((sum, t) => sum + (t.quantity * (t.cost || 0)), 0);
+                    const todayGrossProfit = todayRevenue - todayCost;
+                    const todayNetProfit = todayGrossProfit - todayExpenses;
+                    
+                    document.getElementById('today-profit').textContent = 'Rp' + todayNetProfit.toLocaleString('id-ID');
                     
                     // Calculate today's items out
                     const todayItemsOut = todayTransactions.reduce((sum, t) => sum + t.quantity, 0);
@@ -1216,13 +1299,20 @@
                     
                     const filteredTransactions = allTransactions.filter(t => t.date === selectedDate);
                     
+                    // Get expenses for the selected date
+                    const expenseSnapshot = await get(ref(database, `expenses/${selectedDate}`));
+                    const dailyExpenses = expenseSnapshot.exists() ? expenseSnapshot.val().total : 0;
+                    
                     // Update summary cards
                     const dailyRevenue = filteredTransactions.filter(t => t.type === 'out').reduce((sum, t) => sum + t.total, 0);
                     const dailyCost = filteredTransactions.filter(t => t.type === 'out').reduce((sum, t) => sum + (t.quantity * (t.cost || 0)), 0);
-                    const dailyNetProfit = dailyRevenue - dailyCost;
+                    const dailyGrossProfit = dailyRevenue - dailyCost;
+                    const dailyNetProfit = dailyGrossProfit - dailyExpenses;
                     
                     document.getElementById('daily-revenue').textContent = 'Rp' + dailyRevenue.toLocaleString('id-ID');
                     document.getElementById('daily-cost').textContent = 'Rp' + dailyCost.toLocaleString('id-ID');
+                    document.getElementById('daily-gross-profit').textContent = 'Rp' + dailyGrossProfit.toLocaleString('id-ID');
+                    document.getElementById('daily-expenses').textContent = 'Rp' + dailyExpenses.toLocaleString('id-ID');
                     document.getElementById('daily-net-profit').textContent = 'Rp' + dailyNetProfit.toLocaleString('id-ID');
                     
                     // Load transactions table
@@ -1488,6 +1578,9 @@
                     const transactionsSnapshot = await get(ref(database, 'transactions'));
                     const allTransactions = Object.values(transactionsSnapshot.val() || {});
                     
+                    const expensesSnapshot = await get(ref(database, 'expenses'));
+                    const allExpenses = expensesSnapshot.val() || {};
+                    
                     const startDate = document.getElementById('filter-start-date').value;
                     const endDate = document.getElementById('filter-end-date').value;
                     
@@ -1509,32 +1602,44 @@
                             dailyData[t.date] = {
                                 revenue: 0,
                                 cost: 0,
-                                profit: 0,
+                                grossProfit: 0,
+                                expenses: 0,
+                                netProfit: 0,
                                 count: 0
                             };
                         }
                         
                         dailyData[t.date].revenue += t.total;
                         dailyData[t.date].cost += t.quantity * (t.cost || 0);
-                        dailyData[t.date].profit += t.profit || 0;
                         dailyData[t.date].count += 1;
+                    });
+                    
+                    // Add expenses to daily data
+                    Object.keys(dailyData).forEach(date => {
+                        const dailyExpenses = allExpenses[date] ? allExpenses[date].total : 0;
+                        dailyData[date].expenses = dailyExpenses;
+                        dailyData[date].grossProfit = dailyData[date].revenue - dailyData[date].cost;
+                        dailyData[date].netProfit = dailyData[date].grossProfit - dailyData[date].expenses;
                     });
                     
                     // Calculate totals
                     let totalRevenue = 0;
                     let totalCost = 0;
-                    let totalProfit = 0;
+                    let totalExpenses = 0;
+                    let totalNetProfit = 0;
                     
                     Object.values(dailyData).forEach(data => {
                         totalRevenue += data.revenue;
                         totalCost += data.cost;
-                        totalProfit += data.profit;
+                        totalExpenses += data.expenses;
+                        totalNetProfit += data.netProfit;
                     });
                     
                     // Update summary cards
                     document.getElementById('total-revenue').textContent = 'Rp' + totalRevenue.toLocaleString('id-ID');
                     document.getElementById('total-cost').textContent = 'Rp' + totalCost.toLocaleString('id-ID');
-                    document.getElementById('total-profit').textContent = 'Rp' + totalProfit.toLocaleString('id-ID');
+                    document.getElementById('total-expenses').textContent = 'Rp' + totalExpenses.toLocaleString('id-ID');
+                    document.getElementById('total-profit').textContent = 'Rp' + totalNetProfit.toLocaleString('id-ID');
                     
                     // Load table
                     profitTableBody.innerHTML = '';
@@ -1544,7 +1649,7 @@
                     if (sortedDates.length === 0) {
                         profitTableBody.innerHTML = `
                             <tr>
-                                <td colspan="5" class="px-6 py-4 text-center text-gray-500">Tidak ada data untuk periode yang dipilih</td>
+                                <td colspan="6" class="px-6 py-4 text-center text-gray-500">Tidak ada data untuk periode yang dipilih</td>
                             </tr>
                         `;
                     } else {
@@ -1559,7 +1664,8 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${formattedDate}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp${data.revenue.toLocaleString('id-ID')}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp${data.cost.toLocaleString('id-ID')}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">Rp${data.profit.toLocaleString('id-ID')}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-orange-600">Rp${data.expenses.toLocaleString('id-ID')}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">Rp${data.netProfit.toLocaleString('id-ID')}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${data.count}</td>
                             `;
                             
