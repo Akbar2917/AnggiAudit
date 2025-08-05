@@ -21,6 +21,10 @@
         .sidebar.collapsed .nav-text {
             display: none;
         }
+        .variant-table {
+            max-height: 300px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -48,8 +52,6 @@
             </form>
         </div>
     </div>
-
-
 
     <!-- Main Layout -->
     <div id="main-app" class="hidden min-h-screen flex">
@@ -293,15 +295,11 @@
                                         <!-- Products will be loaded here -->
                                     </select>
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label for="transaction-color" class="block text-sm font-medium text-gray-700">Warna</label>
-                                        <input type="text" id="transaction-color" placeholder="Contoh: Merah, Biru, Hitam" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                                    </div>
-                                    <div>
-                                        <label for="transaction-size" class="block text-sm font-medium text-gray-700">Ukuran</label>
-                                        <input type="text" id="transaction-size" placeholder="Contoh: S, M, L, XL, 40, 42" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                                    </div>
+                                <div>
+                                    <label for="transaction-variant" class="block text-sm font-medium text-gray-700">Pilih Variasi</label>
+                                    <select id="transaction-variant" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="">Pilih produk terlebih dahulu</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <label for="transaction-quantity" class="block text-sm font-medium text-gray-700">Jumlah</label>
@@ -390,7 +388,7 @@
 
                 <!-- Product Modal -->
                 <div id="product-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
-                    <div class="bg-white p-8 rounded-lg w-full max-w-md">
+                    <div class="bg-white p-8 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-xl font-bold" id="modal-title">Tambah Produk Baru</h2>
                             <button id="close-product-modal" class="text-gray-500 hover:text-gray-700">
@@ -399,42 +397,90 @@
                                 </svg>
                             </button>
                         </div>
+                        
                         <form id="product-form">
                             <input type="hidden" id="product-id">
-                            <div class="space-y-4">
-                                <div>
-                                    <label for="product-name" class="block text-sm font-medium text-gray-700">Nama Produk</label>
-                                    <input type="text" id="product-name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            
+                            <!-- Basic Product Info -->
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <!-- Left column: Basic Info -->
+                                <div class="space-y-4">
+                                    <h3 class="text-lg font-semibold border-b pb-2">Informasi Dasar</h3>
+                                    <div>
+                                        <label for="product-name" class="block text-sm font-medium text-gray-700">Nama Produk</label>
+                                        <input type="text" id="product-name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label for="product-price" class="block text-sm font-medium text-gray-700">Harga Jual Default (Rp)</label>
+                                        <input type="number" id="product-price" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label for="product-cost" class="block text-sm font-medium text-gray-700">Modal Default (Rp)</label>
+                                        <input type="number" id="product-cost" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label for="product-category" class="block text-sm font-medium text-gray-700">Kategori</label>
+                                        <select id="product-category" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="pakaian">Pakaian</option>
+                                            <option value="sepatu">Sepatu</option>
+                                            <option value="aksesoris">Aksesoris</option>
+                                            <option value="elektronik">Elektronik</option>
+                                            <option value="lainnya">Lainnya</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label for="product-price" class="block text-sm font-medium text-gray-700">Harga Jual (Rp)</label>
-                                    <input type="number" id="product-price" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                                </div>
-                                <div>
-                                    <label for="product-cost" class="block text-sm font-medium text-gray-700">Modal (Rp)</label>
-                                    <input type="number" id="product-cost" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                                </div>
-                                <div>
-                                    <label for="product-stock" class="block text-sm font-medium text-gray-700">Stok Awal</label>
-                                    <input type="number" id="product-stock" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                                </div>
-                                <div>
-                                    <label for="product-category" class="block text-sm font-medium text-gray-700">Kategori</label>
-                                    <select id="product-category" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                                        <option value="pakaian">Pakaian</option>
-                                        <option value="sepatu">Sepatu</option>
-                                        <option value="aksesoris">Aksesoris</option>
-                                        <option value="elektronik">Elektronik</option>
-                                        <option value="lainnya">Lainnya</option>
-                                    </select>
+                                
+                                <!-- Right column: Variants -->
+                                <div class="space-y-4">
+                                    <h3 class="text-lg font-semibold border-b pb-2">Variasi Produk (Warna & Ukuran)</h3>
+                                    
+                                    <!-- Add Variant Form -->
+                                    <div class="bg-gray-50 p-4 rounded-lg">
+                                        <h4 class="font-medium mb-3">Tambah Variasi Baru</h4>
+                                        <div class="grid grid-cols-3 gap-3">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700">Warna</label>
+                                                <input type="text" id="variant-color" placeholder="Merah, Biru, dll" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700">Ukuran</label>
+                                                <input type="text" id="variant-size" placeholder="S, M, L, 40, dll" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700">Stok</label>
+                                                <input type="number" id="variant-stock" min="0" placeholder="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                            </div>
+                                        </div>
+                                        <button type="button" id="add-variant-btn" class="mt-3 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm">
+                                            + Tambah Variasi
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Variants Table -->
+                                    <div class="variant-table border rounded-lg">
+                                        <table class="min-w-full divide-y divide-gray-200">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Warna</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ukuran</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Stok</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="variants-table-body" class="bg-white divide-y divide-gray-200">
+                                                <!-- Variants will be added here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="mt-6 flex justify-end space-x-3">
+                            
+                            <div class="mt-8 flex justify-end space-x-3">
                                 <button type="button" id="cancel-product" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                                     Batal
                                 </button>
                                 <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-                                    Simpan
+                                    Simpan Produk
                                 </button>
                             </div>
                         </form>
@@ -451,7 +497,8 @@
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Jual</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modal</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Stok</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Variasi</th>
                                     <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                                 </tr>
                             </thead>
@@ -475,6 +522,12 @@
                                 <label for="adjust-product" class="block text-sm font-medium text-gray-700">Pilih Produk</label>
                                 <select id="adjust-product" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                                     <!-- Products will be loaded here -->
+                                </select>
+                            </div>
+                            <div>
+                                <label for="adjust-variant" class="block text-sm font-medium text-gray-700">Pilih Variasi</label>
+                                <select id="adjust-variant" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Pilih produk terlebih dahulu</option>
                                 </select>
                             </div>
                             <div>
@@ -616,17 +669,7 @@
                 if (!usersSnapshot.exists()) {
                     await set(ref(database, 'users'), [
                         { username: 'audit,Afashion46', password: 'suksesafashion46*#*' }
-
                     ]);
-                }
-
-                // Check if products exist
-                const productsSnapshot = await get(ref(database, 'products'));
-                if (!productsSnapshot.exists()) {
-                    const sampleProducts = [
-                        { }
-                    ];
-                    await set(ref(database, 'products'), sampleProducts);
                 }
 
                 console.log('Firebase initialized successfully');
@@ -679,6 +722,7 @@
             const transactionForm = document.getElementById('transaction-form');
             const transactionTableBody = document.getElementById('transaction-table-body');
             const transactionProductSelect = document.getElementById('transaction-product');
+            const transactionVariantSelect = document.getElementById('transaction-variant');
             const transactionType = document.getElementById('transaction-type');
             const salePriceContainer = document.getElementById('sale-price-container');
             
@@ -694,15 +738,21 @@
             const closeProductModal = document.getElementById('close-product-modal');
             const productForm = document.getElementById('product-form');
             const productTableBody = document.getElementById('product-table-body');
+            const addVariantBtn = document.getElementById('add-variant-btn');
+            const variantsTableBody = document.getElementById('variants-table-body');
             
             // Stock elements
             const stockAdjustmentForm = document.getElementById('stock-adjustment-form');
             const adjustProductSelect = document.getElementById('adjust-product');
+            const adjustVariantSelect = document.getElementById('adjust-variant');
             const stockHistory = document.getElementById('stock-history');
             
             // Profit elements
             const profitFilter = document.getElementById('profit-filter');
             const profitTableBody = document.getElementById('profit-table-body');
+
+            // Product variants management
+            let currentProductVariants = [];
 
             // Set today's date as default
             const today = new Date().toISOString().split('T')[0];
@@ -784,6 +834,131 @@
                 profitContent.classList.remove('hidden');
                 loadProfitData();
             });
+
+            // Product variant management
+            addVariantBtn.addEventListener('click', function() {
+                const color = document.getElementById('variant-color').value.trim();
+                const size = document.getElementById('variant-size').value.trim();
+                const stock = parseInt(document.getElementById('variant-stock').value) || 0;
+                
+                if (!color || !size) {
+                    alert('Harap isi warna dan ukuran!');
+                    return;
+                }
+                
+                // Check if variant already exists
+                const existingVariant = currentProductVariants.find(v => 
+                    v.color.toLowerCase() === color.toLowerCase() && 
+                    v.size.toLowerCase() === size.toLowerCase()
+                );
+                
+                if (existingVariant) {
+                    alert('Variasi dengan warna dan ukuran ini sudah ada!');
+                    return;
+                }
+                
+                // Add new variant
+                const variant = {
+                    id: Date.now(),
+                    color: color,
+                    size: size,
+                    stock: stock
+                };
+                
+                currentProductVariants.push(variant);
+                updateVariantsTable();
+                
+                // Clear inputs
+                document.getElementById('variant-color').value = '';
+                document.getElementById('variant-size').value = '';
+                document.getElementById('variant-stock').value = '';
+            });
+
+            function updateVariantsTable() {
+                variantsTableBody.innerHTML = '';
+                
+                currentProductVariants.forEach(variant => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-4 py-2 text-sm text-gray-900">${variant.color}</td>
+                        <td class="px-4 py-2 text-sm text-gray-900">${variant.size}</td>
+                        <td class="px-4 py-2 text-sm text-gray-900">${variant.stock}</td>
+                        <td class="px-4 py-2 text-sm">
+                            <button class="remove-variant text-red-600 hover:text-red-900" data-id="${variant.id}">
+                                Hapus
+                            </button>
+                        </td>
+                    `;
+                    variantsTableBody.appendChild(tr);
+                });
+                
+                // Add event listeners for remove buttons
+                document.querySelectorAll('.remove-variant').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const variantId = this.getAttribute('data-id');
+                        currentProductVariants = currentProductVariants.filter(v => v.id != variantId);
+                        updateVariantsTable();
+                    });
+                });
+            }
+
+            // Product change handler for transaction
+            transactionProductSelect.addEventListener('change', function() {
+                updateTransactionVariants();
+            });
+
+            // Product change handler for stock adjustment
+            adjustProductSelect.addEventListener('change', function() {
+                updateStockAdjustmentVariants();
+            });
+
+            async function updateTransactionVariants() {
+                const productId = transactionProductSelect.value;
+                transactionVariantSelect.innerHTML = '<option value="">Pilih variasi</option>';
+                
+                if (productId) {
+                    try {
+                        const snapshot = await get(ref(database, 'products'));
+                        const products = snapshot.val() || [];
+                        const product = products.find(p => p.id == productId);
+                        
+                        if (product && product.variants) {
+                            product.variants.forEach(variant => {
+                                const option = document.createElement('option');
+                                option.value = `${variant.color}|${variant.size}`;
+                                option.textContent = `${variant.color} - ${variant.size} (Stok: ${variant.stock})`;
+                                transactionVariantSelect.appendChild(option);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error loading variants:', error);
+                    }
+                }
+            }
+
+            async function updateStockAdjustmentVariants() {
+                const productId = adjustProductSelect.value;
+                adjustVariantSelect.innerHTML = '<option value="">Pilih variasi</option>';
+                
+                if (productId) {
+                    try {
+                        const snapshot = await get(ref(database, 'products'));
+                        const products = snapshot.val() || [];
+                        const product = products.find(p => p.id == productId);
+                        
+                        if (product && product.variants) {
+                            product.variants.forEach(variant => {
+                                const option = document.createElement('option');
+                                option.value = `${variant.color}|${variant.size}`;
+                                option.textContent = `${variant.color} - ${variant.size} (Stok: ${variant.stock})`;
+                                adjustVariantSelect.appendChild(option);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error loading variants:', error);
+                    }
+                }
+            }
             
             // Expenses management
             manageExpensesBtn.addEventListener('click', function() {
@@ -808,20 +983,18 @@
                 const expenseDate = document.getElementById('expense-date').value;
                 const taxExpense = parseInt(document.getElementById('tax-expense').value) || 0;
                 const adsExpense = parseInt(document.getElementById('ads-expense').value) || 0;
-                const rentExpense = parseInt(document.getElementById('rent-expense').value) || 0;
                 const utilityExpense = parseInt(document.getElementById('utility-expense').value) || 0;
                 const shippingExpense = parseInt(document.getElementById('shipping-expense').value) || 0;
                 const otherExpense = parseInt(document.getElementById('other-expense').value) || 0;
                 const expenseNotes = document.getElementById('expense-notes').value;
                 
-                const totalExpenses = taxExpense + adsExpense + rentExpense + utilityExpense + shippingExpense + otherExpense;
+                const totalExpenses = taxExpense + adsExpense + utilityExpense + shippingExpense + otherExpense;
                 
                 try {
                     const expenseData = {
                         date: expenseDate,
                         tax: taxExpense,
                         ads: adsExpense,
-                        rent: rentExpense,
                         utility: utilityExpense,
                         shipping: shippingExpense,
                         other: otherExpense,
@@ -853,6 +1026,7 @@
                 document.getElementById('transaction-type').value = 'out';
                 salePriceContainer.style.display = 'grid';
                 transactionModal.classList.remove('hidden');
+                updateTransactionVariants();
             });
             
             closeTransactionModal.addEventListener('click', function() {
@@ -878,13 +1052,19 @@
                 
                 const type = document.getElementById('transaction-type').value;
                 const productId = parseInt(document.getElementById('transaction-product').value);
-                const color = document.getElementById('transaction-color').value;
-                const size = document.getElementById('transaction-size').value;
+                const variantValue = document.getElementById('transaction-variant').value;
                 const quantity = parseInt(document.getElementById('transaction-quantity').value);
                 const price = type === 'out' ? parseInt(document.getElementById('transaction-price').value) : 0;
                 const cost = type === 'out' ? parseInt(document.getElementById('transaction-cost').value) : 0;
                 const customer = document.getElementById('transaction-customer').value;
                 const notes = document.getElementById('transaction-notes').value;
+                
+                if (!variantValue) {
+                    alert('Harap pilih variasi produk!');
+                    return;
+                }
+                
+                const [color, size] = variantValue.split('|');
                 
                 try {
                     const productsSnapshot = await get(ref(database, 'products'));
@@ -897,17 +1077,23 @@
                     }
                     
                     const product = products[productIndex];
+                    const variantIndex = product.variants.findIndex(v => v.color === color && v.size === size);
                     
-                    // Update stock
+                    if (variantIndex === -1) {
+                        alert('Variasi tidak ditemukan!');
+                        return;
+                    }
+                    
+                    // Update variant stock
                     if (type === 'out') {
-                        products[productIndex].stock -= quantity;
-                        if (products[productIndex].stock < 0) {
+                        products[productIndex].variants[variantIndex].stock -= quantity;
+                        if (products[productIndex].variants[variantIndex].stock < 0) {
                             if (!confirm('Stok akan menjadi negatif. Lanjutkan?')) {
                                 return;
                             }
                         }
                     } else {
-                        products[productIndex].stock += quantity;
+                        products[productIndex].variants[variantIndex].stock += quantity;
                     }
                     
                     await set(ref(database, 'products'), products);
@@ -965,6 +1151,8 @@
                 document.getElementById('modal-title').textContent = 'Tambah Produk Baru';
                 document.getElementById('product-id').value = '';
                 productForm.reset();
+                currentProductVariants = [];
+                updateVariantsTable();
                 productModal.classList.remove('hidden');
             });
             
@@ -984,8 +1172,12 @@
                 const productName = document.getElementById('product-name').value;
                 const productPrice = parseInt(document.getElementById('product-price').value);
                 const productCost = parseInt(document.getElementById('product-cost').value);
-                const productStock = parseInt(document.getElementById('product-stock').value);
                 const productCategory = document.getElementById('product-category').value;
+                
+                if (currentProductVariants.length === 0) {
+                    alert('Harap tambahkan minimal satu variasi produk!');
+                    return;
+                }
                 
                 try {
                     const snapshot = await get(ref(database, 'products'));
@@ -1000,8 +1192,12 @@
                                 name: productName,
                                 price: productPrice,
                                 cost: productCost,
-                                stock: productStock,
-                                category: productCategory
+                                category: productCategory,
+                                variants: currentProductVariants.map(v => ({
+                                    color: v.color,
+                                    size: v.size,
+                                    stock: v.stock
+                                }))
                             };
                         }
                     } else {
@@ -1012,8 +1208,12 @@
                             name: productName,
                             price: productPrice,
                             cost: productCost,
-                            stock: productStock,
-                            category: productCategory
+                            category: productCategory,
+                            variants: currentProductVariants.map(v => ({
+                                color: v.color,
+                                size: v.size,
+                                stock: v.stock
+                            }))
                         });
                     }
                     
@@ -1037,14 +1237,17 @@
                 e.preventDefault();
                 
                 const productId = parseInt(adjustProductSelect.value);
+                const variantValue = adjustVariantSelect.value;
                 const adjustType = document.getElementById('adjust-type').value;
                 const adjustAmount = parseInt(document.getElementById('adjust-amount').value);
                 const adjustNotes = document.getElementById('adjust-notes').value;
                 
-                if (!productId || isNaN(adjustAmount)) {
+                if (!productId || !variantValue || isNaN(adjustAmount)) {
                     alert('Harap isi semua field dengan benar!');
                     return;
                 }
+                
+                const [color, size] = variantValue.split('|');
                 
                 try {
                     const productsSnapshot = await get(ref(database, 'products'));
@@ -1056,12 +1259,19 @@
                         return;
                     }
                     
+                    const variantIndex = products[productIndex].variants.findIndex(v => v.color === color && v.size === size);
+                    
+                    if (variantIndex === -1) {
+                        alert('Variasi tidak ditemukan!');
+                        return;
+                    }
+                    
                     // Get current date
                     const now = new Date();
                     const dateStr = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()} ${now.getHours()}:${now.getMinutes()}`;
                     
                     // Adjust stock
-                    let oldStock = products[productIndex].stock;
+                    let oldStock = products[productIndex].variants[variantIndex].stock;
                     let newStock = oldStock;
                     
                     if (adjustType === 'add') {
@@ -1077,14 +1287,16 @@
                         newStock = adjustAmount;
                     }
                     
-                    // Update product stock
-                    products[productIndex].stock = newStock;
+                    // Update variant stock
+                    products[productIndex].variants[variantIndex].stock = newStock;
                     await set(ref(database, 'products'), products);
                     
                     // Add to stock history
                     const stockHistoryData = {
                         productId: productId,
                         productName: products[productIndex].name,
+                        color: color,
+                        size: size,
                         date: dateStr,
                         type: adjustType,
                         amount: adjustAmount,
@@ -1104,6 +1316,7 @@
                     // Reload data
                     loadStockHistory();
                     loadDashboard();
+                    updateStockAdjustmentVariants();
                     if (!productsContent.classList.contains('hidden')) {
                         loadProducts();
                     }
@@ -1140,26 +1353,24 @@
                     const snapshot = await get(ref(database, 'products'));
                     const products = snapshot.val() || [];
                     
-                    // Update adjust product select
-                    adjustProductSelect.innerHTML = '';
-                    transactionProductSelect.innerHTML = '';
-                    
-                    const defaultOption = document.createElement('option');
-                    defaultOption.value = '';
-                    defaultOption.textContent = 'Pilih Produk';
-                    defaultOption.selected = true;
-                    defaultOption.disabled = true;
-                    
-                    adjustProductSelect.appendChild(defaultOption.cloneNode(true));
-                    transactionProductSelect.appendChild(defaultOption);
-                    
-                    products.forEach(product => {
-                        const option = document.createElement('option');
-                        option.value = product.id;
-                        option.textContent = `${product.name} (Stok: ${product.stock})`;
+                    // Update selects
+                    [adjustProductSelect, transactionProductSelect].forEach(select => {
+                        select.innerHTML = '';
                         
-                        adjustProductSelect.appendChild(option.cloneNode(true));
-                        transactionProductSelect.appendChild(option);
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = 'Pilih Produk';
+                        defaultOption.selected = true;
+                        defaultOption.disabled = true;
+                        select.appendChild(defaultOption);
+                        
+                        products.forEach(product => {
+                            const totalStock = product.variants ? product.variants.reduce((sum, v) => sum + v.stock, 0) : 0;
+                            const option = document.createElement('option');
+                            option.value = product.id;
+                            option.textContent = `${product.name} (Total Stok: ${totalStock})`;
+                            select.appendChild(option);
+                        });
                     });
                 } catch (error) {
                     console.error("Gagal mengambil data products untuk select:", error);
@@ -1175,7 +1386,6 @@
                         const expenses = expenseSnapshot.val();
                         document.getElementById('tax-expense').value = expenses.tax || 0;
                         document.getElementById('ads-expense').value = expenses.ads || 0;
-                        document.getElementById('rent-expense').value = expenses.rent || 0;
                         document.getElementById('utility-expense').value = expenses.utility || 0;
                         document.getElementById('shipping-expense').value = expenses.shipping || 0;
                         document.getElementById('other-expense').value = expenses.other || 0;
@@ -1204,7 +1414,15 @@
                     // Update summary cards
                     document.getElementById('total-products').textContent = products.length;
                     
-                    const lowStockCount = products.filter(p => p.stock < 10).length;
+                    // Count low stock variants
+                    let lowStockCount = 0;
+                    products.forEach(product => {
+                        if (product.variants) {
+                            product.variants.forEach(variant => {
+                                if (variant.stock < 10) lowStockCount++;
+                            });
+                        }
+                    });
                     document.getElementById('low-stock').textContent = lowStockCount;
                     
                     // Calculate today's profit (gross profit - expenses)
@@ -1427,6 +1645,10 @@
                     products.forEach(product => {
                         const tr = document.createElement('tr');
                         
+                        // Calculate total stock and variants count
+                        const totalStock = product.variants ? product.variants.reduce((sum, v) => sum + v.stock, 0) : 0;
+                        const variantsCount = product.variants ? product.variants.length : 0;
+                        
                         tr.innerHTML = `
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
@@ -1449,9 +1671,13 @@
                                 <div class="text-sm text-gray-900">Rp${product.cost.toLocaleString('id-ID')}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.stock < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
-                                    ${product.stock}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${totalStock < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                                    ${totalStock}
                                 </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">${variantsCount} variasi</div>
+                                <button class="view-variants text-blue-600 hover:text-blue-900 text-xs" data-id="${product.id}">Lihat Detail</button>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <button class="edit-product text-blue-600 hover:text-blue-900 mr-3" data-id="${product.id}">Edit</button>
@@ -1462,7 +1688,14 @@
                         productTableBody.appendChild(tr);
                     });
                     
-                    // Add event listeners for edit and delete buttons
+                    // Add event listeners for buttons
+                    document.querySelectorAll('.view-variants').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const productId = this.getAttribute('data-id');
+                            viewProductVariants(productId);
+                        });
+                    });
+                    
                     document.querySelectorAll('.edit-product').forEach(btn => {
                         btn.addEventListener('click', function() {
                             const productId = this.getAttribute('data-id');
@@ -1481,6 +1714,24 @@
                 }
             }
 
+            async function viewProductVariants(id) {
+                try {
+                    const snapshot = await get(ref(database, 'products'));
+                    const products = snapshot.val() || [];
+                    const product = products.find(p => p.id == id);
+                    
+                    if (product && product.variants) {
+                        let variantsList = product.variants.map(v => 
+                            `${v.color} - ${v.size}: ${v.stock} pcs`
+                        ).join('\n');
+                        
+                        alert(`Variasi ${product.name}:\n\n${variantsList}`);
+                    }
+                } catch (error) {
+                    console.error("Gagal mengambil data variasi:", error);
+                }
+            }
+
             async function editProduct(id) {
                 try {
                     const snapshot = await get(ref(database, 'products'));
@@ -1493,9 +1744,17 @@
                         document.getElementById('product-name').value = product.name;
                         document.getElementById('product-price').value = product.price;
                         document.getElementById('product-cost').value = product.cost;
-                        document.getElementById('product-stock').value = product.stock;
                         document.getElementById('product-category').value = product.category;
                         
+                        // Load variants
+                        currentProductVariants = product.variants ? product.variants.map((v, index) => ({
+                            id: Date.now() + index,
+                            color: v.color,
+                            size: v.size,
+                            stock: v.stock
+                        })) : [];
+                        
+                        updateVariantsTable();
                         productModal.classList.remove('hidden');
                     }
                 } catch (error) {
@@ -1552,6 +1811,7 @@
                             <div class="flex justify-between items-start">
                                 <div>
                                     <h4 class="font-medium">${product ? product.name : 'Produk dihapus'}</h4>
+                                    <p class="text-sm text-gray-500">${entry.color} - ${entry.size}</p>
                                     <p class="text-sm text-gray-500">${typeText} stok: ${entry.amount}</p>
                                     <p class="text-sm text-gray-500">Stok: ${entry.oldStock} → ${entry.newStock}</p>
                                     ${entry.notes ? `<p class="text-sm mt-1">Catatan: ${entry.notes}</p>` : ''}
@@ -1675,6 +1935,3 @@
     </script>
 </body>
 </html>
-
-
-
