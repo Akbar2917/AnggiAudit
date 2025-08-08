@@ -273,7 +273,7 @@
                 <div id="transaction-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
                     <div class="bg-white p-8 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold">Tambah Transaksi Baru</h2>
+                            <h2 class="text-xl font-bold" id="transaction-modal-title">Tambah Transaksi Baru</h2>
                             <button id="close-transaction-modal" class="text-gray-500 hover:text-gray-700">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -281,6 +281,7 @@
                             </button>
                         </div>
                         <form id="transaction-form">
+                            <input type="hidden" id="transaction-id" value="">
                             <div class="space-y-4">
                                 <div>
                                     <label for="transaction-type" class="block text-sm font-medium text-gray-700">Jenis Transaksi</label>
@@ -351,6 +352,7 @@
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keuntungan</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pembeli</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="transaction-table-body" class="bg-white divide-y divide-gray-200">
@@ -632,7 +634,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
         import { getAuth } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
-        import { getDatabase, ref, set, get, push, onValue } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+        import { getDatabase, ref, set, get, push, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
 
         // Konfigurasi Firebase
         const firebaseConfig = {
@@ -658,7 +660,9 @@
             set,
             get,
             push,
-            onValue
+            onValue,
+            remove,
+            update
         };
 
         // Initialize default data if needed
@@ -691,7 +695,7 @@
                 return;
             }
 
-            const { database, ref, set, get, push, onValue } = window.firebaseDB;
+            const { database, ref, set, get, push, onValue, remove, update } = window.firebaseDB;
 
             // DOM elements
             const loginScreen = document.getElementById('login-screen');
@@ -725,6 +729,8 @@
             const transactionVariantSelect = document.getElementById('transaction-variant');
             const transactionType = document.getElementById('transaction-type');
             const salePriceContainer = document.getElementById('sale-price-container');
+            const transactionModalTitle = document.getElementById('transaction-modal-title');
+            const transactionIdField = document.getElementById('transaction-id');
             
             // Expenses elements
             const manageExpensesBtn = document.getElementById('manage-expenses-btn');
@@ -883,1055 +889,1246 @@
                         <td class="px-4 py-2 text-sm text-gray-900">${variant.color}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${variant.size}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${variant.stock}</td>
-                        <td class="px-4 py-2 text-sm">
-                            <button class="remove-variant text-red-600 hover:text-red-900" data-id="${variant.id}">
-                                Hapus
-                            </button>
-                        </td>
-                    `;
-                    variantsTableBody.appendChild(tr);
-                });
-                
-                // Add event listeners for remove buttons
-                document.querySelectorAll('.remove-variant').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const variantId = this.getAttribute('data-id');
-                        currentProductVariants = currentProductVariants.filter(v => v.id != variantId);
-                        updateVariantsTable();
-                    });
-                });
-            }
+			<td class="px-4 py-2 text-sm">
+                           <button class="remove-variant text-red-600 hover:text-red-900" data-id="${variant.id}">
+                               Hapus
+                           </button>
+                       </td>
+                   `;
+                   variantsTableBody.appendChild(tr);
+               });
+               
+               // Add event listeners for remove buttons
+               document.querySelectorAll('.remove-variant').forEach(btn => {
+                   btn.addEventListener('click', function() {
+                       const variantId = this.getAttribute('data-id');
+                       currentProductVariants = currentProductVariants.filter(v => v.id != variantId);
+                       updateVariantsTable();
+                   });
+               });
+           }
 
-            // Product change handler for transaction
-            transactionProductSelect.addEventListener('change', function() {
-                updateTransactionVariants();
-            });
+           // Product change handler for transaction
+           transactionProductSelect.addEventListener('change', function() {
+               updateTransactionVariants();
+               updateTransactionPrices();
+           });
 
-            // Product change handler for stock adjustment
-            adjustProductSelect.addEventListener('change', function() {
-                updateStockAdjustmentVariants();
-            });
+           // Variant change handler for transaction
+           transactionVariantSelect.addEventListener('change', function() {
+               updateTransactionPrices();
+           });
 
-            async function updateTransactionVariants() {
-                const productId = transactionProductSelect.value;
-                transactionVariantSelect.innerHTML = '<option value="">Pilih variasi</option>';
-                
-                if (productId) {
-                    try {
-                        const snapshot = await get(ref(database, 'products'));
-                        const products = snapshot.val() || [];
-                        const product = products.find(p => p.id == productId);
-                        
-                        if (product && product.variants) {
-                            product.variants.forEach(variant => {
-                                const option = document.createElement('option');
-                                option.value = `${variant.color}|${variant.size}`;
-                                option.textContent = `${variant.color} - ${variant.size} (Stok: ${variant.stock})`;
-                                transactionVariantSelect.appendChild(option);
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Error loading variants:', error);
-                    }
-                }
-            }
+           // Product change handler for stock adjustment
+           adjustProductSelect.addEventListener('change', function() {
+               updateStockAdjustmentVariants();
+           });
 
-            async function updateStockAdjustmentVariants() {
-                const productId = adjustProductSelect.value;
-                adjustVariantSelect.innerHTML = '<option value="">Pilih variasi</option>';
-                
-                if (productId) {
-                    try {
-                        const snapshot = await get(ref(database, 'products'));
-                        const products = snapshot.val() || [];
-                        const product = products.find(p => p.id == productId);
-                        
-                        if (product && product.variants) {
-                            product.variants.forEach(variant => {
-                                const option = document.createElement('option');
-                                option.value = `${variant.color}|${variant.size}`;
-                                option.textContent = `${variant.color} - ${variant.size} (Stok: ${variant.stock})`;
-                                adjustVariantSelect.appendChild(option);
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Error loading variants:', error);
-                    }
-                }
-            }
-            
-            // Expenses management
-            manageExpensesBtn.addEventListener('click', function() {
-                expensesForm.reset();
-                document.getElementById('expense-date').value = document.getElementById('transaction-date').value;
-                loadCurrentExpenses();
-                expensesModal.classList.remove('hidden');
-            });
-            
-            closeExpensesModal.addEventListener('click', function() {
-                expensesModal.classList.add('hidden');
-            });
-            
-            document.getElementById('cancel-expenses').addEventListener('click', function() {
-                expensesModal.classList.add('hidden');
-            });
-            
-            // Expenses form handler
-            expensesForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const expenseDate = document.getElementById('expense-date').value;
-                const taxExpense = parseInt(document.getElementById('tax-expense').value) || 0;
-                const adsExpense = parseInt(document.getElementById('ads-expense').value) || 0;
-                const utilityExpense = parseInt(document.getElementById('utility-expense').value) || 0;
-                const shippingExpense = parseInt(document.getElementById('shipping-expense').value) || 0;
-                const otherExpense = parseInt(document.getElementById('other-expense').value) || 0;
-                const expenseNotes = document.getElementById('expense-notes').value;
-                
-                const totalExpenses = taxExpense + adsExpense + utilityExpense + shippingExpense + otherExpense;
-                
-                try {
-                    const expenseData = {
-                        date: expenseDate,
-                        tax: taxExpense,
-                        ads: adsExpense,
-                        utility: utilityExpense,
-                        shipping: shippingExpense,
-                        other: otherExpense,
-                        total: totalExpenses,
-                        notes: expenseNotes,
-                        timestamp: Date.now(),
-                        user: 'Admin'
-                    };
-                    
-                    await set(ref(database, `expenses/${expenseDate}`), expenseData);
-                    
-                    alert('Biaya operasional berhasil disimpan!');
-                    expensesModal.classList.add('hidden');
-                    
-                    // Reload transaction data if viewing the same date
-                    if (document.getElementById('transaction-date').value === expenseDate) {
-                        loadDailyTransactions();
-                    }
-                    loadDashboard();
-                } catch (error) {
-                    console.error("Gagal menyimpan biaya operasional:", error);
-                    alert('Terjadi kesalahan saat menyimpan biaya.');
-                }
-            });
-            
-            // Transaction management
-            addTransactionBtn.addEventListener('click', function() {
-                transactionForm.reset();
-                document.getElementById('transaction-type').value = 'out';
-                salePriceContainer.style.display = 'grid';
-                transactionModal.classList.remove('hidden');
-                updateTransactionVariants();
-            });
-            
-            closeTransactionModal.addEventListener('click', function() {
-                transactionModal.classList.add('hidden');
-            });
-            
-            document.getElementById('cancel-transaction').addEventListener('click', function() {
-                transactionModal.classList.add('hidden');
-            });
-            
-            // Transaction type change handler
-            transactionType.addEventListener('change', function() {
-                if (this.value === 'in') {
-                    salePriceContainer.style.display = 'none';
-                } else {
-                    salePriceContainer.style.display = 'grid';
-                }
-            });
-            
-            // Transaction form handler
-            transactionForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const type = document.getElementById('transaction-type').value;
-                const productId = parseInt(document.getElementById('transaction-product').value);
-                const variantValue = document.getElementById('transaction-variant').value;
-                const quantity = parseInt(document.getElementById('transaction-quantity').value);
-                const price = type === 'out' ? parseInt(document.getElementById('transaction-price').value) : 0;
-                const cost = type === 'out' ? parseInt(document.getElementById('transaction-cost').value) : 0;
-                const customer = document.getElementById('transaction-customer').value;
-                const notes = document.getElementById('transaction-notes').value;
-                
-                if (!variantValue) {
-                    alert('Harap pilih variasi produk!');
-                    return;
-                }
-                
-                const [color, size] = variantValue.split('|');
-                
-                try {
-                    const productsSnapshot = await get(ref(database, 'products'));
-                    let products = productsSnapshot.val() || [];
-                    const productIndex = products.findIndex(p => p.id == productId);
-                    
-                    if (productIndex === -1) {
-                        alert('Produk tidak ditemukan!');
-                        return;
-                    }
-                    
-                    const product = products[productIndex];
-                    const variantIndex = product.variants.findIndex(v => v.color === color && v.size === size);
-                    
-                    if (variantIndex === -1) {
-                        alert('Variasi tidak ditemukan!');
-                        return;
-                    }
-                    
-                    // Update variant stock
-                    if (type === 'out') {
-                        products[productIndex].variants[variantIndex].stock -= quantity;
-                        if (products[productIndex].variants[variantIndex].stock < 0) {
-                            if (!confirm('Stok akan menjadi negatif. Lanjutkan?')) {
-                                return;
-                            }
-                        }
-                    } else {
-                        products[productIndex].variants[variantIndex].stock += quantity;
-                    }
-                    
-                    await set(ref(database, 'products'), products);
-                    
-                    // Create transaction record
-                    const now = new Date();
-                    const transaction = {
-                        date: now.toISOString().split('T')[0],
-                        time: now.toTimeString().split(' ')[0],
-                        timestamp: now.getTime(),
-                        type: type,
-                        productId: productId,
-                        productName: product.name,
-                        color: color,
-                        size: size,
-                        quantity: quantity,
-                        price: type === 'out' ? (price || product.price) : 0,
-                        cost: type === 'out' ? (cost || product.cost || 0) : 0,
-                        total: type === 'out' ? quantity * (price || product.price) : 0,
-                        profit: type === 'out' ? quantity * ((price || product.price) - (cost || product.cost || 0)) : 0,
-                        customer: customer,
-                        notes: notes,
-                        user: 'Admin'
-                    };
-                    
-                    await push(ref(database, 'transactions'), transaction);
-                    
-                    alert('Transaksi berhasil disimpan!');
-                    transactionModal.classList.add('hidden');
-                    
-                    // Reload data
-                    loadDailyTransactions();
-                    loadDashboard();
-                    if (!productsContent.classList.contains('hidden')) {
-                        loadProducts();
-                    }
-                } catch (error) {
-                    console.error("Gagal menyimpan transaksi:", error);
-                    alert('Terjadi kesalahan saat menyimpan transaksi.');
-                }
-            });
-            
-            // Date filter handlers
-            document.getElementById('filter-transaction-btn').addEventListener('click', function() {
-                loadDailyTransactions();
-            });
-            
-            document.getElementById('today-transaction-btn').addEventListener('click', function() {
-                document.getElementById('transaction-date').value = today;
-                loadDailyTransactions();
-            });
-            
-            // Product management
-            addProductBtn.addEventListener('click', function() {
-                document.getElementById('modal-title').textContent = 'Tambah Produk Baru';
-                document.getElementById('product-id').value = '';
-                productForm.reset();
-                currentProductVariants = [];
-                updateVariantsTable();
-                productModal.classList.remove('hidden');
-            });
-            
-            closeProductModal.addEventListener('click', function() {
-                productModal.classList.add('hidden');
-            });
-            
-            document.getElementById('cancel-product').addEventListener('click', function() {
-                productModal.classList.add('hidden');
-            });
-            
-            // Product form handler
-            productForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const productId = document.getElementById('product-id').value;
-                const productName = document.getElementById('product-name').value;
-                const productPrice = parseInt(document.getElementById('product-price').value);
-                const productCost = parseInt(document.getElementById('product-cost').value);
-                const productCategory = document.getElementById('product-category').value;
-                
-                if (currentProductVariants.length === 0) {
-                    alert('Harap tambahkan minimal satu variasi produk!');
-                    return;
-                }
-                
-                try {
-                    const snapshot = await get(ref(database, 'products'));
-                    let products = snapshot.val() || [];
-                    
-                    if (productId) {
-                        // Edit existing product
-                        const index = products.findIndex(p => p.id == productId);
-                        if (index !== -1) {
-                            products[index] = {
-                                ...products[index],
-                                name: productName,
-                                price: productPrice,
-                                cost: productCost,
-                                category: productCategory,
-                                variants: currentProductVariants.map(v => ({
-                                    color: v.color,
-                                    size: v.size,
-                                    stock: v.stock
-                                }))
-                            };
-                        }
-                    } else {
-                        // Add new product
-                        const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
-                        products.push({
-                            id: newId,
-                            name: productName,
-                            price: productPrice,
-                            cost: productCost,
-                            category: productCategory,
-                            variants: currentProductVariants.map(v => ({
-                                color: v.color,
-                                size: v.size,
-                                stock: v.stock
-                            }))
-                        });
-                    }
-                    
-                    await set(ref(database, 'products'), products);
-                    
-                    productModal.classList.add('hidden');
-                    if (productsContent.classList.contains('hidden')) {
-                        loadDashboard();
-                    } else {
-                        loadProducts();
-                    }
-                    updateProductSelects();
-                } catch (error) {
-                    console.error("Gagal menyimpan produk:", error);
-                    alert('Terjadi kesalahan saat menyimpan produk.');
-                }
-            });
+           async function updateTransactionVariants() {
+               const productId = transactionProductSelect.value;
+               transactionVariantSelect.innerHTML = '<option value="">Pilih variasi</option>';
+               
+               if (productId) {
+                   try {
+                       const snapshot = await get(ref(database, 'products'));
+                       const products = snapshot.val() || [];
+                       const product = products.find(p => p.id == productId);
+                       
+                       if (product && product.variants) {
+                           product.variants.forEach(variant => {
+                               const option = document.createElement('option');
+                               option.value = `${variant.color}|${variant.size}`;
+                               option.textContent = `${variant.color} - ${variant.size} (Stok: ${variant.stock})`;
+                               transactionVariantSelect.appendChild(option);
+                           });
+                       }
+                   } catch (error) {
+                       console.error('Error loading variants:', error);
+                   }
+               }
+           }
 
-            // Stock adjustment form handler
-            stockAdjustmentForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const productId = parseInt(adjustProductSelect.value);
-                const variantValue = adjustVariantSelect.value;
-                const adjustType = document.getElementById('adjust-type').value;
-                const adjustAmount = parseInt(document.getElementById('adjust-amount').value);
-                const adjustNotes = document.getElementById('adjust-notes').value;
-                
-                if (!productId || !variantValue || isNaN(adjustAmount)) {
-                    alert('Harap isi semua field dengan benar!');
-                    return;
-                }
-                
-                const [color, size] = variantValue.split('|');
-                
-                try {
-                    const productsSnapshot = await get(ref(database, 'products'));
-                    let products = productsSnapshot.val() || [];
-                    const productIndex = products.findIndex(p => p.id == productId);
-                    
-                    if (productIndex === -1) {
-                        alert('Produk tidak ditemukan!');
-                        return;
-                    }
-                    
-                    const variantIndex = products[productIndex].variants.findIndex(v => v.color === color && v.size === size);
-                    
-                    if (variantIndex === -1) {
-                        alert('Variasi tidak ditemukan!');
-                        return;
-                    }
-                    
-                    // Get current date
-                    const now = new Date();
-                    const dateStr = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()} ${now.getHours()}:${now.getMinutes()}`;
-                    
-                    // Adjust stock
-                    let oldStock = products[productIndex].variants[variantIndex].stock;
-                    let newStock = oldStock;
-                    
-                    if (adjustType === 'add') {
-                        newStock = oldStock + adjustAmount;
-                    } else if (adjustType === 'subtract') {
-                        newStock = oldStock - adjustAmount;
-                        if (newStock < 0) {
-                            if (!confirm('Stok akan menjadi negatif. Lanjutkan?')) {
-                                return;
-                            }
-                        }
-                    } else if (adjustType === 'set') {
-                        newStock = adjustAmount;
-                    }
-                    
-                    // Update variant stock
-                    products[productIndex].variants[variantIndex].stock = newStock;
-                    await set(ref(database, 'products'), products);
-                    
-                    // Add to stock history
-                    const stockHistoryData = {
-                        productId: productId,
-                        productName: products[productIndex].name,
-                        color: color,
-                        size: size,
-                        date: dateStr,
-                        type: adjustType,
-                        amount: adjustAmount,
-                        oldStock: oldStock,
-                        newStock: newStock,
-                        notes: adjustNotes,
-                        user: 'Admin'
-                    };
-                    
-                    await push(ref(database, 'stockHistory'), stockHistoryData);
-                    
-                    alert('Penyesuaian stok berhasil disimpan!');
-                    // Reset form
-                    document.getElementById('adjust-amount').value = '';
-                    document.getElementById('adjust-notes').value = '';
-                    
-                    // Reload data
-                    loadStockHistory();
-                    loadDashboard();
-                    updateStockAdjustmentVariants();
-                    if (!productsContent.classList.contains('hidden')) {
-                        loadProducts();
-                    }
-                } catch (error) {
-                    console.error("Gagal memperbarui stok:", error);
-                    alert('Terjadi kesalahan saat memperbarui stok.');
-                }
-            });
+           async function updateTransactionPrices() {
+               const productId = transactionProductSelect.value;
+               
+               if (productId) {
+                   try {
+                       const snapshot = await get(ref(database, 'products'));
+                       const products = snapshot.val() || [];
+                       const product = products.find(p => p.id == productId);
+                       
+                       if (product) {
+                           // Set default prices if not already filled
+                           if (!document.getElementById('transaction-price').value) {
+                               document.getElementById('transaction-price').value = product.price;
+                           }
+                           if (!document.getElementById('transaction-cost').value) {
+                               document.getElementById('transaction-cost').value = product.cost;
+                           }
+                       }
+                   } catch (error) {
+                       console.error('Error loading product prices:', error);
+                   }
+               }
+           }
 
-            // Profit filter handler
-            profitFilter.addEventListener('submit', function(e) {
-                e.preventDefault();
-                loadProfitData();
-            });
+           async function updateStockAdjustmentVariants() {
+               const productId = adjustProductSelect.value;
+               adjustVariantSelect.innerHTML = '<option value="">Pilih variasi</option>';
+               
+               if (productId) {
+                   try {
+                       const snapshot = await get(ref(database, 'products'));
+                       const products = snapshot.val() || [];
+                       const product = products.find(p => p.id == productId);
+                       
+                       if (product && product.variants) {
+                           product.variants.forEach(variant => {
+                               const option = document.createElement('option');
+                               option.value = `${variant.color}|${variant.size}`;
+                               option.textContent = `${variant.color} - ${variant.size} (Stok: ${variant.stock})`;
+                               adjustVariantSelect.appendChild(option);
+                           });
+                       }
+                   } catch (error) {
+                       console.error('Error loading variants:', error);
+                   }
+               }
+           }
+           
+           // Expenses management
+           manageExpensesBtn.addEventListener('click', function() {
+               expensesForm.reset();
+               document.getElementById('expense-date').value = document.getElementById('transaction-date').value;
+               loadCurrentExpenses();
+               expensesModal.classList.remove('hidden');
+           });
+           
+           closeExpensesModal.addEventListener('click', function() {
+               expensesModal.classList.add('hidden');
+           });
+           
+           document.getElementById('cancel-expenses').addEventListener('click', function() {
+               expensesModal.classList.add('hidden');
+           });
+           
+           // Expenses form handler
+           expensesForm.addEventListener('submit', async function(e) {
+               e.preventDefault();
+               
+               const expenseDate = document.getElementById('expense-date').value;
+               const taxExpense = parseInt(document.getElementById('tax-expense').value) || 0;
+               const adsExpense = parseInt(document.getElementById('ads-expense').value) || 0;
+               const utilityExpense = parseInt(document.getElementById('utility-expense').value) || 0;
+               const shippingExpense = parseInt(document.getElementById('shipping-expense').value) || 0;
+               const otherExpense = parseInt(document.getElementById('other-expense').value) || 0;
+               const expenseNotes = document.getElementById('expense-notes').value;
+               
+               const totalExpenses = taxExpense + adsExpense + utilityExpense + shippingExpense + otherExpense;
+               
+               try {
+                   const expenseData = {
+                       date: expenseDate,
+                       tax: taxExpense,
+                       ads: adsExpense,
+                       utility: utilityExpense,
+                       shipping: shippingExpense,
+                       other: otherExpense,
+                       total: totalExpenses,
+                       notes: expenseNotes,
+                       timestamp: Date.now(),
+                       user: 'Admin'
+                   };
+                   
+                   await set(ref(database, `expenses/${expenseDate}`), expenseData);
+                   
+                   alert('Biaya operasional berhasil disimpan!');
+                   expensesModal.classList.add('hidden');
+                   
+                   // Reload transaction data if viewing the same date
+                   if (document.getElementById('transaction-date').value === expenseDate) {
+                       loadDailyTransactions();
+                   }
+                   loadDashboard();
+               } catch (error) {
+                   console.error("Gagal menyimpan biaya operasional:", error);
+                   alert('Terjadi kesalahan saat menyimpan biaya.');
+               }
+           });
+           
+           // Transaction management
+           addTransactionBtn.addEventListener('click', function() {
+               resetTransactionForm();
+               transactionModalTitle.textContent = 'Tambah Transaksi Baru';
+               transactionIdField.value = '';
+               transactionModal.classList.remove('hidden');
+               updateTransactionVariants();
+           });
+           
+           closeTransactionModal.addEventListener('click', function() {
+               transactionModal.classList.add('hidden');
+           });
+           
+           document.getElementById('cancel-transaction').addEventListener('click', function() {
+               transactionModal.classList.add('hidden');
+           });
+           
+           // Transaction type change handler
+           transactionType.addEventListener('change', function() {
+               if (this.value === 'in') {
+                   salePriceContainer.style.display = 'none';
+               } else {
+                   salePriceContainer.style.display = 'grid';
+               }
+           });
 
-            // Reset filter handler
-            document.getElementById('reset-filter').addEventListener('click', function() {
-                document.getElementById('filter-start-date').value = '';
-                document.getElementById('filter-end-date').value = '';
-                loadProfitData();
-            });
+           function resetTransactionForm() {
+               transactionForm.reset();
+               document.getElementById('transaction-type').value = 'out';
+               salePriceContainer.style.display = 'grid';
+           }
 
-            // Helper functions
-            function hideAllContent() {
-                dashboardContent.classList.add('hidden');
-                dailyTransactionContent.classList.add('hidden');
-                productsContent.classList.add('hidden');
-                stockContent.classList.add('hidden');
-                profitContent.classList.add('hidden');
-            }
+           // Edit transaction function
+           async function editTransaction(transactionKey) {
+               try {
+                   const snapshot = await get(ref(database, `transactions/${transactionKey}`));
+                   if (snapshot.exists()) {
+                       const transaction = snapshot.val();
+                       
+                       // Populate form with transaction data
+                       transactionIdField.value = transactionKey;
+                       document.getElementById('transaction-type').value = transaction.type;
+                       document.getElementById('transaction-product').value = transaction.productId;
+                       document.getElementById('transaction-quantity').value = transaction.quantity;
+                       document.getElementById('transaction-price').value = transaction.price;
+                       document.getElementById('transaction-cost').value = transaction.cost;
+                       document.getElementById('transaction-customer').value = transaction.customer || '';
+                       document.getElementById('transaction-notes').value = transaction.notes || '';
+                       
+                       // Update variants and select the correct one
+                       await updateTransactionVariants();
+                       document.getElementById('transaction-variant').value = `${transaction.color}|${transaction.size}`;
+                       
+                       // Update sale price container visibility
+                       if (transaction.type === 'in') {
+                           salePriceContainer.style.display = 'none';
+                       } else {
+                           salePriceContainer.style.display = 'grid';
+                       }
+                       
+                       transactionModalTitle.textContent = 'Edit Transaksi';
+                       transactionModal.classList.remove('hidden');
+                   }
+               } catch (error) {
+                   console.error("Gagal mengambil data transaksi:", error);
+                   alert('Terjadi kesalahan saat mengambil data transaksi.');
+               }
+           }
 
-            async function updateProductSelects() {
-                try {
-                    const snapshot = await get(ref(database, 'products'));
-                    const products = snapshot.val() || [];
-                    
-                    // Update selects
-                    [adjustProductSelect, transactionProductSelect].forEach(select => {
-                        select.innerHTML = '';
-                        
-                        const defaultOption = document.createElement('option');
-                        defaultOption.value = '';
-                        defaultOption.textContent = 'Pilih Produk';
-                        defaultOption.selected = true;
-                        defaultOption.disabled = true;
-                        select.appendChild(defaultOption);
-                        
-                        products.forEach(product => {
-                            const totalStock = product.variants ? product.variants.reduce((sum, v) => sum + v.stock, 0) : 0;
-                            const option = document.createElement('option');
-                            option.value = product.id;
-                            option.textContent = `${product.name} (Total Stok: ${totalStock})`;
-                            select.appendChild(option);
-                        });
-                    });
-                } catch (error) {
-                    console.error("Gagal mengambil data products untuk select:", error);
-                }
-            }
+           // Delete transaction function
+           async function deleteTransaction(transactionKey, transaction) {
+               if (confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
+                   try {
+                       // Restore stock if it was a sale (out) transaction
+                       if (transaction.type === 'out') {
+                           const productsSnapshot = await get(ref(database, 'products'));
+                           let products = productsSnapshot.val() || [];
+                           const productIndex = products.findIndex(p => p.id == transaction.productId);
+                           
+                           if (productIndex !== -1) {
+                               const variantIndex = products[productIndex].variants.findIndex(v => 
+                                   v.color === transaction.color && v.size === transaction.size
+                               );
+                               
+                               if (variantIndex !== -1) {
+                                   // Restore stock
+                                   products[productIndex].variants[variantIndex].stock += transaction.quantity;
+                                   await set(ref(database, 'products'), products);
+                               }
+                           }
+                       } else {
+                           // If it was a restock (in) transaction, subtract the stock
+                           const productsSnapshot = await get(ref(database, 'products'));
+                           let products = productsSnapshot.val() || [];
+                           const productIndex = products.findIndex(p => p.id == transaction.productId);
+                           
+                           if (productIndex !== -1) {
+                               const variantIndex = products[productIndex].variants.findIndex(v => 
+                                   v.color === transaction.color && v.size === transaction.size
+                               );
+                               
+                               if (variantIndex !== -1) {
+                                   // Remove the added stock
+                                   products[productIndex].variants[variantIndex].stock -= transaction.quantity;
+                                   if (products[productIndex].variants[variantIndex].stock < 0) {
+                                       products[productIndex].variants[variantIndex].stock = 0;
+                                   }
+                                   await set(ref(database, 'products'), products);
+                               }
+                           }
+                       }
+                       
+                       // Delete the transaction
+                       await remove(ref(database, `transactions/${transactionKey}`));
+                       
+                       alert('Transaksi berhasil dihapus!');
+                       
+                       // Reload data
+                       loadDailyTransactions();
+                       loadDashboard();
+                       if (!productsContent.classList.contains('hidden')) {
+                           loadProducts();
+                       }
+                   } catch (error) {
+                       console.error("Gagal menghapus transaksi:", error);
+                       alert('Terjadi kesalahan saat menghapus transaksi.');
+                   }
+               }
+           }
+           
+           // Transaction form handler
+           transactionForm.addEventListener('submit', async function(e) {
+               e.preventDefault();
+               
+               const transactionId = transactionIdField.value;
+               const type = document.getElementById('transaction-type').value;
+               const productId = parseInt(document.getElementById('transaction-product').value);
+               const variantValue = document.getElementById('transaction-variant').value;
+               const quantity = parseInt(document.getElementById('transaction-quantity').value);
+               const price = type === 'out' ? parseInt(document.getElementById('transaction-price').value) : 0;
+               const cost = type === 'out' ? parseInt(document.getElementById('transaction-cost').value) : 0;
+               const customer = document.getElementById('transaction-customer').value;
+               const notes = document.getElementById('transaction-notes').value;
+               
+               if (!variantValue) {
+                   alert('Harap pilih variasi produk!');
+                   return;
+               }
+               
+               const [color, size] = variantValue.split('|');
+               
+               try {
+                   const productsSnapshot = await get(ref(database, 'products'));
+                   let products = productsSnapshot.val() || [];
+                   const productIndex = products.findIndex(p => p.id == productId);
+                   
+                   if (productIndex === -1) {
+                       alert('Produk tidak ditemukan!');
+                       return;
+                   }
+                   
+                   const product = products[productIndex];
+                   const variantIndex = product.variants.findIndex(v => v.color === color && v.size === size);
+                   
+                   if (variantIndex === -1) {
+                       alert('Variasi tidak ditemukan!');
+                       return;
+                   }
+                   
+                   // If editing, restore original stock first
+                   if (transactionId) {
+                       const originalSnapshot = await get(ref(database, `transactions/${transactionId}`));
+                       if (originalSnapshot.exists()) {
+                           const originalTransaction = originalSnapshot.val();
+                           
+                           // Find original variant and restore stock
+                           const originalProductIndex = products.findIndex(p => p.id == originalTransaction.productId);
+                           if (originalProductIndex !== -1) {
+                               const originalVariantIndex = products[originalProductIndex].variants.findIndex(v => 
+                                   v.color === originalTransaction.color && v.size === originalTransaction.size
+                               );
+                               
+                               if (originalVariantIndex !== -1) {
+                                   if (originalTransaction.type === 'out') {
+                                       products[originalProductIndex].variants[originalVariantIndex].stock += originalTransaction.quantity;
+                                   } else {
+                                       products[originalProductIndex].variants[originalVariantIndex].stock -= originalTransaction.quantity;
+                                   }
+                               }
+                           }
+                       }
+                   }
+                   
+                   // Update variant stock with new values
+                   if (type === 'out') {
+                       products[productIndex].variants[variantIndex].stock -= quantity;
+                       if (products[productIndex].variants[variantIndex].stock < 0) {
+                           if (!confirm('Stok akan menjadi negatif. Lanjutkan?')) {
+                               return;
+                           }
+                       }
+                   } else {
+                       products[productIndex].variants[variantIndex].stock += quantity;
+                   }
+                   
+                   await set(ref(database, 'products'), products);
+                   
+                   // Create/update transaction record
+                   const now = new Date();
+                   const transactionData = {
+                       date: now.toISOString().split('T')[0],
+                       time: now.toTimeString().split(' ')[0],
+                       timestamp: transactionId ? (await get(ref(database, `transactions/${transactionId}`))).val().timestamp : now.getTime(),
+                       type: type,
+                       productId: productId,
+                       productName: product.name,
+                       color: color,
+                       size: size,
+                       quantity: quantity,
+                       price: type === 'out' ? (price || product.price) : 0,
+                       cost: type === 'out' ? (cost || product.cost || 0) : 0,
+                       total: type === 'out' ? quantity * (price || product.price) : 0,
+                       profit: type === 'out' ? quantity * ((price || product.price) - (cost || product.cost || 0)) : 0,
+                       customer: customer,
+                       notes: notes,
+                       user: 'Admin'
+                   };
+                   
+                   if (transactionId) {
+                       // Update existing transaction
+                       await update(ref(database, `transactions/${transactionId}`), transactionData);
+                       alert('Transaksi berhasil diperbarui!');
+                   } else {
+                       // Create new transaction
+                       await push(ref(database, 'transactions'), transactionData);
+                       alert('Transaksi berhasil disimpan!');
+                   }
+                   
+                   transactionModal.classList.add('hidden');
+                   
+                   // Reload data
+                   loadDailyTransactions();
+                   loadDashboard();
+                   if (!productsContent.classList.contains('hidden')) {
+                       loadProducts();
+                   }
+               } catch (error) {
+                   console.error("Gagal menyimpan transaksi:", error);
+                   alert('Terjadi kesalahan saat menyimpan transaksi.');
+               }
+           });
+           
+           // Date filter handlers
+           document.getElementById('filter-transaction-btn').addEventListener('click', function() {
+               loadDailyTransactions();
+           });
+           
+           document.getElementById('today-transaction-btn').addEventListener('click', function() {
+               document.getElementById('transaction-date').value = today;
+               loadDailyTransactions();
+           });
+           
+           // Product management
+           addProductBtn.addEventListener('click', function() {
+               document.getElementById('modal-title').textContent = 'Tambah Produk Baru';
+               document.getElementById('product-id').value = '';
+               productForm.reset();
+               currentProductVariants = [];
+               updateVariantsTable();
+               productModal.classList.remove('hidden');
+           });
+           
+           closeProductModal.addEventListener('click', function() {
+               productModal.classList.add('hidden');
+           });
+           
+           document.getElementById('cancel-product').addEventListener('click', function() {
+               productModal.classList.add('hidden');
+           });
+           
+           // Product form handler
+           productForm.addEventListener('submit', async function(e) {
+               e.preventDefault();
+               
+               const productId = document.getElementById('product-id').value;
+               const productName = document.getElementById('product-name').value;
+               const productPrice = parseInt(document.getElementById('product-price').value);
+               const productCost = parseInt(document.getElementById('product-cost').value);
+               const productCategory = document.getElementById('product-category').value;
+               
+               if (currentProductVariants.length === 0) {
+                   alert('Harap tambahkan minimal satu variasi produk!');
+                   return;
+               }
+               
+               try {
+                   const snapshot = await get(ref(database, 'products'));
+                   let products = snapshot.val() || [];
+                   
+                   if (productId) {
+                       // Edit existing product
+                       const index = products.findIndex(p => p.id == productId);
+                       if (index !== -1) {
+                           products[index] = {
+                               ...products[index],
+                               name: productName,
+                               price: productPrice,
+                               cost: productCost,
+                               category: productCategory,
+                               variants: currentProductVariants.map(v => ({
+                                   color: v.color,
+                                   size: v.size,
+                                   stock: v.stock
+                               }))
+                           };
+                       }
+                   } else {
+                       // Add new product
+                       const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+                       products.push({
+                           id: newId,
+                           name: productName,
+                           price: productPrice,
+                           cost: productCost,
+                           category: productCategory,
+                           variants: currentProductVariants.map(v => ({
+                               color: v.color,
+                               size: v.size,
+                               stock: v.stock
+                           }))
+                       });
+                   }
+                   
+                   await set(ref(database, 'products'), products);
+                   
+                   productModal.classList.add('hidden');
+                   if (productsContent.classList.contains('hidden')) {
+                       loadDashboard();
+                   } else {
+                       loadProducts();
+                   }
+                   updateProductSelects();
+               } catch (error) {
+                   console.error("Gagal menyimpan produk:", error);
+                   alert('Terjadi kesalahan saat menyimpan produk.');
+               }
+           });
 
-            async function loadCurrentExpenses() {
-                try {
-                    const selectedDate = document.getElementById('expense-date').value;
-                    const expenseSnapshot = await get(ref(database, `expenses/${selectedDate}`));
-                    
-                    if (expenseSnapshot.exists()) {
-                        const expenses = expenseSnapshot.val();
-                        document.getElementById('tax-expense').value = expenses.tax || 0;
-                        document.getElementById('ads-expense').value = expenses.ads || 0;
-                        document.getElementById('utility-expense').value = expenses.utility || 0;
-                        document.getElementById('shipping-expense').value = expenses.shipping || 0;
-                        document.getElementById('other-expense').value = expenses.other || 0;
-                        document.getElementById('expense-notes').value = expenses.notes || '';
-                    }
-                } catch (error) {
-                    console.error("Gagal mengambil data biaya:", error);
-                }
-            }
+           // Stock adjustment form handler
+           stockAdjustmentForm.addEventListener('submit', async function(e) {
+               e.preventDefault();
+               
+               const productId = parseInt(adjustProductSelect.value);
+               const variantValue = adjustVariantSelect.value;
+               const adjustType = document.getElementById('adjust-type').value;
+               const adjustAmount = parseInt(document.getElementById('adjust-amount').value);
+               const adjustNotes = document.getElementById('adjust-notes').value;
+               
+               if (!productId || !variantValue || isNaN(adjustAmount)) {
+                   alert('Harap isi semua field dengan benar!');
+                   return;
+               }
+               
+               const [color, size] = variantValue.split('|');
+               
+               try {
+                   const productsSnapshot = await get(ref(database, 'products'));
+                   let products = productsSnapshot.val() || [];
+                   const productIndex = products.findIndex(p => p.id == productId);
+                   
+                   if (productIndex === -1) {
+                       alert('Produk tidak ditemukan!');
+                       return;
+                   }
+                   
+                   const variantIndex = products[productIndex].variants.findIndex(v => v.color === color && v.size === size);
+                   
+                   if (variantIndex === -1) {
+                       alert('Variasi tidak ditemukan!');
+                       return;
+                   }
+                   
+                   // Get current date
+                   const now = new Date();
+                   const dateStr = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()} ${now.getHours()}:${now.getMinutes()}`;
+                   
+                   // Adjust stock
+                   let oldStock = products[productIndex].variants[variantIndex].stock;
+                   let newStock = oldStock;
+                   
+                   if (adjustType === 'add') {
+                       newStock = oldStock + adjustAmount;
+                   } else if (adjustType === 'subtract') {
+                       newStock = oldStock - adjustAmount;
+                       if (newStock < 0) {
+                           if (!confirm('Stok akan menjadi negatif. Lanjutkan?')) {
+                               return;
+                           }
+                       }
+                   } else if (adjustType === 'set') {
+                       newStock = adjustAmount;
+                   }
+                   
+                   // Update variant stock
+                   products[productIndex].variants[variantIndex].stock = newStock;
+                   await set(ref(database, 'products'), products);
+                   
+                   // Add to stock history
+                   const stockHistoryData = {
+                       productId: productId,
+                       productName: products[productIndex].name,
+                       color: color,
+                       size: size,
+                       date: dateStr,
+                       type: adjustType,
+                       amount: adjustAmount,
+                       oldStock: oldStock,
+                       newStock: newStock,
+                       notes: adjustNotes,
+                       user: 'Admin'
+                   };
+                   
+                   await push(ref(database, 'stockHistory'), stockHistoryData);
+                   
+                   alert('Penyesuaian stok berhasil disimpan!');
+                   // Reset form
+                   document.getElementById('adjust-amount').value = '';
+                   document.getElementById('adjust-notes').value = '';
+                   
+                   // Reload data
+                   loadStockHistory();
+                   loadDashboard();
+                   updateStockAdjustmentVariants();
+                   if (!productsContent.classList.contains('hidden')) {
+                       loadProducts();
+                   }
+               } catch (error) {
+                   console.error("Gagal memperbarui stok:", error);
+                   alert('Terjadi kesalahan saat memperbarui stok.');
+               }
+           });
 
-            async function loadDashboard() {
-                try {
-                    const productsSnapshot = await get(ref(database, 'products'));
-                    const products = productsSnapshot.val() || [];
-                    
-                    const transactionsSnapshot = await get(ref(database, 'transactions'));
-                    const allTransactions = Object.values(transactionsSnapshot.val() || {});
-                    
-                    const today = new Date().toISOString().split('T')[0];
-                    const todayTransactions = allTransactions.filter(t => t.date === today && t.type === 'out');
-                    
-                    // Get today's expenses
-                    const expenseSnapshot = await get(ref(database, `expenses/${today}`));
-                    const todayExpenses = expenseSnapshot.exists() ? expenseSnapshot.val().total : 0;
-                    
-                    // Update summary cards
-                    document.getElementById('total-products').textContent = products.length;
-                    
-                    // Count low stock variants
-                    let lowStockCount = 0;
-                    products.forEach(product => {
-                        if (product.variants) {
-                            product.variants.forEach(variant => {
-                                if (variant.stock < 10) lowStockCount++;
-                            });
-                        }
-                    });
-                    document.getElementById('low-stock').textContent = lowStockCount;
-                    
-                    // Calculate today's profit (gross profit - expenses)
-                    const todayRevenue = todayTransactions.reduce((sum, t) => sum + t.total, 0);
-                    const todayCost = todayTransactions.reduce((sum, t) => sum + (t.quantity * (t.cost || 0)), 0);
-                    const todayGrossProfit = todayRevenue - todayCost;
-                    const todayNetProfit = todayGrossProfit - todayExpenses;
-                    
-                    document.getElementById('today-profit').textContent = 'Rp' + todayNetProfit.toLocaleString('id-ID');
-                    
-                    // Calculate today's items out
-                    const todayItemsOut = todayTransactions.reduce((sum, t) => sum + t.quantity, 0);
-                    document.getElementById('today-items-out').textContent = todayItemsOut;
-                    
-                    // Load today's transactions
-                    const todayTransactionsContainer = document.getElementById('today-transactions');
-                    todayTransactionsContainer.innerHTML = '';
-                    
-                    if (todayTransactions.length === 0) {
-                        todayTransactionsContainer.innerHTML = '<p class="text-gray-500">Belum ada transaksi hari ini</p>';
-                    } else {
-                        const recentTransactions = todayTransactions.slice(-5).reverse();
-                        recentTransactions.forEach(transaction => {
-                            const transactionEl = document.createElement('div');
-                            transactionEl.className = 'flex justify-between items-center p-2 bg-gray-50 rounded';
-                            
-                            transactionEl.innerHTML = `
-                                <div>
-                                    <div class="text-sm font-medium">${transaction.productName} - ${transaction.color} ${transaction.size}</div>
-                                    <div class="text-xs text-gray-500">${transaction.time} - ${transaction.quantity} pcs</div>
-                                </div>
-                                <div class="text-sm font-bold text-green-600">Rp${transaction.total.toLocaleString('id-ID')}</div>
-                            `;
-                            
-                            todayTransactionsContainer.appendChild(transactionEl);
-                        });
-                    }
-                    
-                    // Load top products today
-                    const topProductsContainer = document.getElementById('top-products-today');
-                    topProductsContainer.innerHTML = '';
-                    
-                    if (todayTransactions.length === 0) {
-                        topProductsContainer.innerHTML = '<p class="text-gray-500">Belum ada penjualan hari ini</p>';
-                    } else {
-                        const productSales = {};
-                        todayTransactions.forEach(t => {
-                            if (!productSales[t.productId]) {
-                                productSales[t.productId] = {
-                                    name: t.productName,
-                                    quantity: 0,
-                                    total: 0
-                                };
-                            }
-                            productSales[t.productId].quantity += t.quantity;
-                            productSales[t.productId].total += t.total;
-                        });
-                        
-                        const sortedProducts = Object.values(productSales).sort((a, b) => b.quantity - a.quantity).slice(0, 3);
-                        
-                        sortedProducts.forEach(product => {
-                            const productEl = document.createElement('div');
-                            productEl.className = 'flex justify-between items-center p-2 bg-gray-50 rounded';
-                            
-                            productEl.innerHTML = `
-                                <div>
-                                    <div class="text-sm font-medium">${product.name}</div>
-                                    <div class="text-xs text-gray-500">${product.quantity} pcs terjual</div>
-                                </div>
-                                <div class="text-sm font-bold">Rp${product.total.toLocaleString('id-ID')}</div>
-                            `;
-                            
-                            topProductsContainer.appendChild(productEl);
-                        });
-                    }
-                } catch (error) {
-                    console.error("Gagal mengambil data untuk dashboard:", error);
-                }
-            }
+           // Profit filter handler
+           profitFilter.addEventListener('submit', function(e) {
+               e.preventDefault();
+               loadProfitData();
+           });
 
-            async function loadDailyTransactions() {
-                try {
-                    const selectedDate = document.getElementById('transaction-date').value;
-                    const transactionsSnapshot = await get(ref(database, 'transactions'));
-                    const allTransactions = Object.values(transactionsSnapshot.val() || {});
-                    
-                    const filteredTransactions = allTransactions.filter(t => t.date === selectedDate);
-                    
-                    // Get expenses for the selected date
-                    const expenseSnapshot = await get(ref(database, `expenses/${selectedDate}`));
-                    const dailyExpenses = expenseSnapshot.exists() ? expenseSnapshot.val().total : 0;
-                    
-                    // Update summary cards
-                    const dailyRevenue = filteredTransactions.filter(t => t.type === 'out').reduce((sum, t) => sum + t.total, 0);
-                    const dailyCost = filteredTransactions.filter(t => t.type === 'out').reduce((sum, t) => sum + (t.quantity * (t.cost || 0)), 0);
-                    const dailyGrossProfit = dailyRevenue - dailyCost;
-                    const dailyNetProfit = dailyGrossProfit - dailyExpenses;
-                    
-                    document.getElementById('daily-revenue').textContent = 'Rp' + dailyRevenue.toLocaleString('id-ID');
-                    document.getElementById('daily-cost').textContent = 'Rp' + dailyCost.toLocaleString('id-ID');
-                    document.getElementById('daily-gross-profit').textContent = 'Rp' + dailyGrossProfit.toLocaleString('id-ID');
-                    document.getElementById('daily-expenses').textContent = 'Rp' + dailyExpenses.toLocaleString('id-ID');
-                    document.getElementById('daily-net-profit').textContent = 'Rp' + dailyNetProfit.toLocaleString('id-ID');
-                    
-                    // Load transactions table
-                    transactionTableBody.innerHTML = '';
-                    
-                    if (filteredTransactions.length === 0) {
-                        transactionTableBody.innerHTML = `
-                            <tr>
-                                <td colspan="9" class="px-6 py-4 text-center text-gray-500">Tidak ada transaksi untuk tanggal yang dipilih</td>
-                            </tr>
-                        `;
-                    } else {
-                        filteredTransactions.sort((a, b) => b.timestamp - a.timestamp);
-                        
-                        filteredTransactions.forEach(transaction => {
-                            const tr = document.createElement('tr');
-                            const typeClass = transaction.type === 'out' ? 'text-red-600' : 'text-green-600';
-                            const typeText = transaction.type === 'out' ? 'Keluar' : 'Masuk';
-                            
-                            tr.innerHTML = `
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transaction.time}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${transaction.type === 'out' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
-                                        ${typeText}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transaction.productName}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transaction.color}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transaction.size}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transaction.quantity}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp${transaction.total.toLocaleString('id-ID')}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm ${transaction.profit > 0 ? 'text-green-600' : 'text-gray-900'}">
-                                    ${transaction.type === 'out' ? 'Rp' + transaction.profit.toLocaleString('id-ID') : '-'}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transaction.customer || '-'}</td>
-                            `;
-                            
-                            transactionTableBody.appendChild(tr);
-                        });
-                    }
-                    
-                    // Load color and size summaries
-                    loadColorSizeSummaries(filteredTransactions.filter(t => t.type === 'out'));
-                } catch (error) {
-                    console.error("Gagal mengambil data transaksi:", error);
-                }
-            }
+           // Reset filter handler
+           document.getElementById('reset-filter').addEventListener('click', function() {
+               document.getElementById('filter-start-date').value = '';
+               document.getElementById('filter-end-date').value = '';
+               loadProfitData();
+           });
 
-            function loadColorSizeSummaries(transactions) {
-                const colorSummary = {};
-                const sizeSummary = {};
-                
-                transactions.forEach(t => {
-                    // Color summary
-                    if (!colorSummary[t.color]) {
-                        colorSummary[t.color] = { quantity: 0, total: 0 };
-                    }
-                    colorSummary[t.color].quantity += t.quantity;
-                    colorSummary[t.color].total += t.total;
-                    
-                    // Size summary
-                    if (!sizeSummary[t.size]) {
-                        sizeSummary[t.size] = { quantity: 0, total: 0 };
-                    }
-                    sizeSummary[t.size].quantity += t.quantity;
-                    sizeSummary[t.size].total += t.total;
-                });
-                
-                // Display color summary
-                const colorSummaryContainer = document.getElementById('color-summary');
-                colorSummaryContainer.innerHTML = '';
-                
-                Object.entries(colorSummary).forEach(([color, data]) => {
-                    const div = document.createElement('div');
-                    div.className = 'flex justify-between items-center p-2 bg-gray-50 rounded';
-                    div.innerHTML = `
-                        <span class="font-medium">${color}</span>
-                        <div class="text-right">
-                            <div class="text-sm">${data.quantity} pcs</div>
-                            <div class="text-xs text-gray-500">Rp${data.total.toLocaleString('id-ID')}</div>
-                        </div>
-                    `;
-                    colorSummaryContainer.appendChild(div);
-                });
-                
-                if (Object.keys(colorSummary).length === 0) {
-                    colorSummaryContainer.innerHTML = '<p class="text-gray-500">Tidak ada data</p>';
-                }
-                
-                // Display size summary
-                const sizeSummaryContainer = document.getElementById('size-summary');
-                sizeSummaryContainer.innerHTML = '';
-                
-                Object.entries(sizeSummary).forEach(([size, data]) => {
-                    const div = document.createElement('div');
-                    div.className = 'flex justify-between items-center p-2 bg-gray-50 rounded';
-                    div.innerHTML = `
-                        <span class="font-medium">${size}</span>
-                        <div class="text-right">
-                            <div class="text-sm">${data.quantity} pcs</div>
-                            <div class="text-xs text-gray-500">Rp${data.total.toLocaleString('id-ID')}</div>
-                        </div>
-                    `;
-                    sizeSummaryContainer.appendChild(div);
-                });
-                
-                if (Object.keys(sizeSummary).length === 0) {
-                    sizeSummaryContainer.innerHTML = '<p class="text-gray-500">Tidak ada data</p>';
-                }
-            }
+           // Helper functions
+           function hideAllContent() {
+               dashboardContent.classList.add('hidden');
+               dailyTransactionContent.classList.add('hidden');
+               productsContent.classList.add('hidden');
+               stockContent.classList.add('hidden');
+               profitContent.classList.add('hidden');
+           }
 
-            async function loadProducts() {
-                try {
-                    const snapshot = await get(ref(database, 'products'));
-                    const products = snapshot.val() || [];
-                    productTableBody.innerHTML = '';
-                    
-                    products.forEach(product => {
-                        const tr = document.createElement('tr');
-                        
-                        // Calculate total stock and variants count
-                        const totalStock = product.variants ? product.variants.reduce((sum, v) => sum + v.stock, 0) : 0;
-                        const variantsCount = product.variants ? product.variants.length : 0;
-                        
-                        tr.innerHTML = `
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
-                                        <span class="text-gray-600">${product.name.charAt(0)}</span>
-                                    </div>
-                                    <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900">${product.name}</div>
-                                        <div class="text-sm text-gray-500">ID: ${product.id}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900 capitalize">${product.category}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">Rp${product.price.toLocaleString('id-ID')}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">Rp${product.cost.toLocaleString('id-ID')}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${totalStock < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
-                                    ${totalStock}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">${variantsCount} variasi</div>
-                                <button class="view-variants text-blue-600 hover:text-blue-900 text-xs" data-id="${product.id}">Lihat Detail</button>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button class="edit-product text-blue-600 hover:text-blue-900 mr-3" data-id="${product.id}">Edit</button>
-                                <button class="delete-product text-red-600 hover:text-red-900" data-id="${product.id}">Hapus</button>
-                            </td>
-                        `;
-                        
-                        productTableBody.appendChild(tr);
-                    });
-                    
-                    // Add event listeners for buttons
-                    document.querySelectorAll('.view-variants').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const productId = this.getAttribute('data-id');
-                            viewProductVariants(productId);
-                        });
-                    });
-                    
-                    document.querySelectorAll('.edit-product').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const productId = this.getAttribute('data-id');
-                            editProduct(productId);
-                        });
-                    });
-                    
-                    document.querySelectorAll('.delete-product').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const productId = this.getAttribute('data-id');
-                            deleteProduct(productId);
-                        });
-                    });
-                } catch (error) {
-                    console.error("Gagal mengambil data products:", error);
-                }
-            }
+           async function updateProductSelects() {
+               try {
+                   const snapshot = await get(ref(database, 'products'));
+                   const products = snapshot.val() || [];
+                   
+                   // Update selects
+                   [adjustProductSelect, transactionProductSelect].forEach(select => {
+                       select.innerHTML = '';
+                       
+                       const defaultOption = document.createElement('option');
+                       defaultOption.value = '';
+                       defaultOption.textContent = 'Pilih Produk';
+                       defaultOption.selected = true;
+                       defaultOption.disabled = true;
+                       select.appendChild(defaultOption);
+                       
+                       products.forEach(product => {
+                           const totalStock = product.variants ? product.variants.reduce((sum, v) => sum + v.stock, 0) : 0;
+                           const option = document.createElement('option');
+                           option.value = product.id;
+                           option.textContent = `${product.name} (Total Stok: ${totalStock})`;
+                           select.appendChild(option);
+                       });
+                   });
+               } catch (error) {
+                   console.error("Gagal mengambil data products untuk select:", error);
+               }
+           }
 
-            async function viewProductVariants(id) {
-                try {
-                    const snapshot = await get(ref(database, 'products'));
-                    const products = snapshot.val() || [];
-                    const product = products.find(p => p.id == id);
-                    
-                    if (product && product.variants) {
-                        let variantsList = product.variants.map(v => 
-                            `${v.color} - ${v.size}: ${v.stock} pcs`
-                        ).join('\n');
-                        
-                        alert(`Variasi ${product.name}:\n\n${variantsList}`);
-                    }
-                } catch (error) {
-                    console.error("Gagal mengambil data variasi:", error);
-                }
-            }
+           async function loadCurrentExpenses() {
+               try {
+                   const selectedDate = document.getElementById('expense-date').value;
+                   const expenseSnapshot = await get(ref(database, `expenses/${selectedDate}`));
+                   
+                   if (expenseSnapshot.exists()) {
+                       const expenses = expenseSnapshot.val();
+                       document.getElementById('tax-expense').value = expenses.tax || 0;
+                       document.getElementById('ads-expense').value = expenses.ads || 0;
+                       document.getElementById('utility-expense').value = expenses.utility || 0;
+                       document.getElementById('shipping-expense').value = expenses.shipping || 0;
+                       document.getElementById('other-expense').value = expenses.other || 0;
+                       document.getElementById('expense-notes').value = expenses.notes || '';
+                   }
+               } catch (error) {
+                   console.error("Gagal mengambil data biaya:", error);
+               }
+           }
 
-            async function editProduct(id) {
-                try {
-                    const snapshot = await get(ref(database, 'products'));
-                    const products = snapshot.val() || [];
-                    const product = products.find(p => p.id == id);
-                    
-                    if (product) {
-                        document.getElementById('modal-title').textContent = 'Edit Produk';
-                        document.getElementById('product-id').value = product.id;
-                        document.getElementById('product-name').value = product.name;
-                        document.getElementById('product-price').value = product.price;
-                        document.getElementById('product-cost').value = product.cost;
-                        document.getElementById('product-category').value = product.category;
-                        
-                        // Load variants
-                        currentProductVariants = product.variants ? product.variants.map((v, index) => ({
-                            id: Date.now() + index,
-                            color: v.color,
-                            size: v.size,
-                            stock: v.stock
-                        })) : [];
-                        
-                        updateVariantsTable();
-                        productModal.classList.remove('hidden');
-                    }
-                } catch (error) {
-                    console.error("Gagal mengambil data produk untuk edit:", error);
-                }
-            }
+           async function loadDashboard() {
+               try {
+                   const productsSnapshot = await get(ref(database, 'products'));
+                   const products = productsSnapshot.val() || [];
+                   
+                   const transactionsSnapshot = await get(ref(database, 'transactions'));
+                   const allTransactions = Object.values(transactionsSnapshot.val() || {});
+                   
+                   const today = new Date().toISOString().split('T')[0];
+                   const todayTransactions = allTransactions.filter(t => t.date === today && t.type === 'out');
+                   
+                   // Get today's expenses
+                   const expenseSnapshot = await get(ref(database, `expenses/${today}`));
+                   const todayExpenses = expenseSnapshot.exists() ? expenseSnapshot.val().total : 0;
+                   
+                   // Update summary cards
+                   document.getElementById('total-products').textContent = products.length;
+                   
+                   // Count low stock variants
+                   let lowStockCount = 0;
+                   products.forEach(product => {
+                       if (product.variants) {
+                           product.variants.forEach(variant => {
+                               if (variant.stock < 10) lowStockCount++;
+                           });
+                       }
+                   });
+                   document.getElementById('low-stock').textContent = lowStockCount;
+                   
+                   // Calculate today's profit (gross profit - expenses)
+                   const todayRevenue = todayTransactions.reduce((sum, t) => sum + t.total, 0);
+                   const todayCost = todayTransactions.reduce((sum, t) => sum + (t.quantity * (t.cost || 0)), 0);
+                   const todayGrossProfit = todayRevenue - todayCost;
+                   const todayNetProfit = todayGrossProfit - todayExpenses;
+                   
+                   document.getElementById('today-profit').textContent = 'Rp' + todayNetProfit.toLocaleString('id-ID');
+                   
+                   // Calculate today's items out
+                   const todayItemsOut = todayTransactions.reduce((sum, t) => sum + t.quantity, 0);
+                   document.getElementById('today-items-out').textContent = todayItemsOut;
+                   
+                   // Load today's transactions
+                   const todayTransactionsContainer = document.getElementById('today-transactions');
+                   todayTransactionsContainer.innerHTML = '';
+                   
+                   if (todayTransactions.length === 0) {
+                       todayTransactionsContainer.innerHTML = '<p class="text-gray-500">Belum ada transaksi hari ini</p>';
+                   } else {
+                       const recentTransactions = todayTransactions.slice(-5).reverse();
+                       recentTransactions.forEach(transaction => {
+                           const transactionEl = document.createElement('div');
+                           transactionEl.className = 'flex justify-between items-center p-2 bg-gray-50 rounded';
+                           
+                           transactionEl.innerHTML = `
+                               <div>
+                                   <div class="text-sm font-medium">${transaction.productName} - ${transaction.color} ${transaction.size}</div>
+                                   <div class="text-xs text-gray-500">${transaction.time} - ${transaction.quantity} pcs</div>
+                               </div>
+                               <div class="text-sm font-bold text-green-600">Rp${transaction.total.toLocaleString('id-ID')}</div>
+                           `;
+                           
+                           todayTransactionsContainer.appendChild(transactionEl);
+                       });
+                   }
+                   
+                   // Load top products today
+                   const topProductsContainer = document.getElementById('top-products-today');
+                   topProductsContainer.innerHTML = '';
+                   
+                   if (todayTransactions.length === 0) {
+                       topProductsContainer.innerHTML = '<p class="text-gray-500">Belum ada penjualan hari ini</p>';
+                   } else {
+                       const productSales = {};
+                       todayTransactions.forEach(t => {
+                           if (!productSales[t.productId]) {
+                               productSales[t.productId] = {
+                                   name: t.productName,
+                                   quantity: 0,
+                                   total: 0
+                               };
+                           }
+                           productSales[t.productId].quantity += t.quantity;
+                           productSales[t.productId].total += t.total;
+                       });
+                       
+                       const sortedProducts = Object.values(productSales).sort((a, b) => b.quantity - a.quantity).slice(0, 3);
+                       
+                       sortedProducts.forEach(product => {
+                           const productEl = document.createElement('div');
+                           productEl.className = 'flex justify-between items-center p-2 bg-gray-50 rounded';
+                           
+                           productEl.innerHTML = `
+                               <div>
+                                   <div class="text-sm font-medium">${product.name}</div>
+                                   <div class="text-xs text-gray-500">${product.quantity} pcs terjual</div>
+                               </div>
+                               <div class="text-sm font-bold">Rp${product.total.toLocaleString('id-ID')}</div>
+                           `;
+                           
+                           topProductsContainer.appendChild(productEl);
+                       });
+                   }
+               } catch (error) {
+                   console.error("Gagal mengambil data untuk dashboard:", error);
+               }
+           }
 
-            async function deleteProduct(id) {
-                if (confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
-                    try {
-                        const snapshot = await get(ref(database, 'products'));
-                        const products = snapshot.val() || [];
-                        const filteredProducts = products.filter(p => p.id != id);
-                        
-                        await set(ref(database, 'products'), filteredProducts);
-                        
-                        loadProducts();
-                        updateProductSelects();
-                        loadDashboard();
-                    } catch (error) {
-                        console.error("Gagal menghapus produk:", error);
-                        alert('Terjadi kesalahan saat menghapus produk.');
-                    }
-                }
-            }
+           async function loadDailyTransactions() {
+               try {
+                   const selectedDate = document.getElementById('transaction-date').value;
+                   const transactionsSnapshot = await get(ref(database, 'transactions'));
+                   const allTransactions = transactionsSnapshot.val() || {};
+                   const allTransactionsArray = Object.entries(allTransactions).map(([key, value]) => ({ key, ...value }));
+                   
+                   const filteredTransactions = allTransactionsArray.filter(t => t.date === selectedDate);
+                   
+                   // Get expenses for the selected date
+                   const expenseSnapshot = await get(ref(database, `expenses/${selectedDate}`));
+                   const dailyExpenses = expenseSnapshot.exists() ? expenseSnapshot.val().total : 0;
+                   
+                   // Update summary cards
+                   const dailyRevenue = filteredTransactions.filter(t => t.type === 'out').reduce((sum, t) => sum + t.total, 0);
+                   const dailyCost = filteredTransactions.filter(t => t.type === 'out').reduce((sum, t) => sum + (t.quantity * (t.cost || 0)), 0);
+                   const dailyGrossProfit = dailyRevenue - dailyCost;
+                   const dailyNetProfit = dailyGrossProfit - dailyExpenses;
+                   
+                   document.getElementById('daily-revenue').textContent = 'Rp' + dailyRevenue.toLocaleString('id-ID');
+                   document.getElementById('daily-cost').textContent = 'Rp' + dailyCost.toLocaleString('id-ID');
+                   document.getElementById('daily-gross-profit').textContent = 'Rp' + dailyGrossProfit.toLocaleString('id-ID');
+                   document.getElementById('daily-expenses').textContent = 'Rp' + dailyExpenses.toLocaleString('id-ID');
+                   document.getElementById('daily-net-profit').textContent = 'Rp' + dailyNetProfit.toLocaleString('id-ID');
+                   
+                   // Load transactions table
+                   transactionTableBody.innerHTML = '';
+                   
+                   if (filteredTransactions.length === 0) {
+                       transactionTableBody.innerHTML = `
+                           <tr>
+                               <td colspan="10" class="px-6 py-4 text-center text-gray-500">Tidak ada transaksi untuk tanggal yang dipilih</td>
+                           </tr>
+                       `;
+                   } else {
+                       filteredTransactions.sort((a, b) => b.timestamp - a.timestamp);
+                       
+                       filteredTransactions.forEach(transaction => {
+                           const tr = document.createElement('tr');
+                           const typeClass = transaction.type === 'out' ? 'text-red-600' : 'text-green-600';
+                           const typeText = transaction.type === 'out' ? 'Keluar' : 'Masuk';
+                           
+                           tr.innerHTML = `
+                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transaction.time}</td>
+                               <td class="px-6 py-4 whitespace-nowrap">
+                                   <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${transaction.type === 'out' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                                       ${typeText}
+                                   </span>
+                               </td>
+                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transaction.productName}</td>
+                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transaction.color}</td>
+                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transaction.size}</td>
+                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transaction.quantity}</td>
+                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp${transaction.total.toLocaleString('id-ID')}</td>
+                               <td class="px-6 py-4 whitespace-nowrap text-sm ${transaction.profit > 0 ? 'text-green-600' : 'text-gray-900'}">
+                                   ${transaction.type === 'out' ? 'Rp' + transaction.profit.toLocaleString('id-ID') : '-'}
+                               </td>
+                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transaction.customer || '-'}</td>
+                               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                   <button class="edit-transaction text-blue-600 hover:text-blue-900 mr-3" data-key="${transaction.key}">
+                                       Edit
+                                   </button>
+                                   <button class="delete-transaction text-red-600 hover:text-red-900" data-key="${transaction.key}">
+                                       Hapus
+                                   </button>
+                               </td>
+                           `;
+                           
+                           transactionTableBody.appendChild(tr);
+                       });
+                       
+                       // Add event listeners for edit and delete buttons
+                       document.querySelectorAll('.edit-transaction').forEach(btn => {
+                           btn.addEventListener('click', function() {
+                               const transactionKey = this.getAttribute('data-key');
+                               editTransaction(transactionKey);
+                           });
+                       });
+                       
+                       document.querySelectorAll('.delete-transaction').forEach(btn => {
+                           btn.addEventListener('click', function() {
+                               const transactionKey = this.getAttribute('data-key');
+                               const transaction = filteredTransactions.find(t => t.key === transactionKey);
+                               deleteTransaction(transactionKey, transaction);
+                           });
+                       });
+                   }
+                   
+                   // Load color and size summaries
+                   loadColorSizeSummaries(filteredTransactions.filter(t => t.type === 'out'));
+               } catch (error) {
+                   console.error("Gagal mengambil data transaksi:", error);
+               }
+           }
 
-            async function loadStockHistory() {
-                try {
-                    const stockSnapshot = await get(ref(database, 'stockHistory'));
-                    const history = Object.values(stockSnapshot.val() || {});
-                    
-                    const productsSnapshot = await get(ref(database, 'products'));
-                    const products = productsSnapshot.val() || [];
-                    
-                    stockHistory.innerHTML = '';
-                    
-                    if (history.length === 0) {
-                        stockHistory.innerHTML = '<p class="text-gray-500">Belum ada riwayat penyesuaian stok.</p>';
-                        return;
-                    }
-                    
-                    // Show only last 10 entries
-                    const recentHistory = [...history].reverse().slice(0, 10);
-                    
-                    recentHistory.forEach(entry => {
-                        const product = products.find(p => p.id == entry.productId);
-                        const typeText = entry.type === 'add' ? 'Penambahan' : 
-                                        entry.type === 'subtract' ? 'Pengurangan' : 'Penetapan';
-                        
-                        const entryEl = document.createElement('div');
-                        entryEl.className = 'p-3 bg-gray-50 rounded';
-                        
-                        entryEl.innerHTML = `
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h4 class="font-medium">${product ? product.name : 'Produk dihapus'}</h4>
-                                    <p class="text-sm text-gray-500">${entry.color} - ${entry.size}</p>
-                                    <p class="text-sm text-gray-500">${typeText} stok: ${entry.amount}</p>
-                                    <p class="text-sm text-gray-500">Stok: ${entry.oldStock} → ${entry.newStock}</p>
-                                    ${entry.notes ? `<p class="text-sm mt-1">Catatan: ${entry.notes}</p>` : ''}
-                                </div>
-                                <div class="text-xs text-gray-500">${entry.date}</div>
-                            </div>
-                        `;
-                        
-                        stockHistory.appendChild(entryEl);
-                    });
-                } catch (error) {
-                    console.error("Gagal mengambil data stock history:", error);
-                }
-            }
+           function loadColorSizeSummaries(transactions) {
+               const colorSummary = {};
+               const sizeSummary = {};
+               
+               transactions.forEach(t => {
+                   // Color summary
+                   if (!colorSummary[t.color]) {
+                       colorSummary[t.color] = { quantity: 0, total: 0 };
+                   }
+                   colorSummary[t.color].quantity += t.quantity;
+                   colorSummary[t.color].total += t.total;
+                   
+                   // Size summary
+                   if (!sizeSummary[t.size]) {
+                       sizeSummary[t.size] = { quantity: 0, total: 0 };
+                   }
+                   sizeSummary[t.size].quantity += t.quantity;
+                   sizeSummary[t.size].total += t.total;
+               });
+               
+               // Display color summary
+               const colorSummaryContainer = document.getElementById('color-summary');
+               colorSummaryContainer.innerHTML = '';
+               
+               Object.entries(colorSummary).forEach(([color, data]) => {
+                   const div = document.createElement('div');
+                   div.className = 'flex justify-between items-center p-2 bg-gray-50 rounded';
+                   div.innerHTML = `
+                       <span class="font-medium">${color}</span>
+                       <div class="text-right">
+                           <div class="text-sm">${data.quantity} pcs</div>
+                           <div class="text-xs text-gray-500">Rp${data.total.toLocaleString('id-ID')}</div>
+                       </div>
+                   `;
+                   colorSummaryContainer.appendChild(div);
+               });
+               
+               if (Object.keys(colorSummary).length === 0) {
+                   colorSummaryContainer.innerHTML = '<p class="text-gray-500">Tidak ada data</p>';
+               }
+               
+               // Display size summary
+               const sizeSummaryContainer = document.getElementById('size-summary');
+               sizeSummaryContainer.innerHTML = '';
+               
+               Object.entries(sizeSummary).forEach(([size, data]) => {
+                   const div = document.createElement('div');
+                   div.className = 'flex justify-between items-center p-2 bg-gray-50 rounded';
+                   div.innerHTML = `
+                       <span class="font-medium">${size}</span>
+                       <div class="text-right">
+                           <div class="text-sm">${data.quantity} pcs</div>
+                           <div class="text-xs text-gray-500">Rp${data.total.toLocaleString('id-ID')}</div>
+                       </div>
+                   `;
+                   sizeSummaryContainer.appendChild(div);
+               });
+               
+               if (Object.keys(sizeSummary).length === 0) {
+                   sizeSummaryContainer.innerHTML = '<p class="text-gray-500">Tidak ada data</p>';
+               }
+           }
 
-            async function loadProfitData() {
-                try {
-                    const transactionsSnapshot = await get(ref(database, 'transactions'));
-                    const allTransactions = Object.values(transactionsSnapshot.val() || {});
-                    
-                    const expensesSnapshot = await get(ref(database, 'expenses'));
-                    const allExpenses = expensesSnapshot.val() || {};
-                    
-                    const startDate = document.getElementById('filter-start-date').value;
-                    const endDate = document.getElementById('filter-end-date').value;
-                    
-                    let filteredTransactions = allTransactions.filter(t => t.type === 'out');
-                    
-                    if (startDate) {
-                        filteredTransactions = filteredTransactions.filter(t => t.date >= startDate);
-                    }
-                    
-                    if (endDate) {
-                        filteredTransactions = filteredTransactions.filter(t => t.date <= endDate);
-                    }
-                    
-                    // Group by date
-                    const dailyData = {};
-                    
-                    filteredTransactions.forEach(t => {
-                        if (!dailyData[t.date]) {
-                            dailyData[t.date] = {
-                                revenue: 0,
-                                cost: 0,
-                                grossProfit: 0,
-                                expenses: 0,
-                                netProfit: 0,
-                                count: 0
-                            };
-                        }
-                        
-                        dailyData[t.date].revenue += t.total;
-                        dailyData[t.date].cost += t.quantity * (t.cost || 0);
-                        dailyData[t.date].count += 1;
-                    });
-                    
-                    // Add expenses to daily data
-                    Object.keys(dailyData).forEach(date => {
-                        const dailyExpenses = allExpenses[date] ? allExpenses[date].total : 0;
-                        dailyData[date].expenses = dailyExpenses;
-                        dailyData[date].grossProfit = dailyData[date].revenue - dailyData[date].cost;
-                        dailyData[date].netProfit = dailyData[date].grossProfit - dailyData[date].expenses;
-                    });
-                    
-                    // Calculate totals
-                    let totalRevenue = 0;
-                    let totalCost = 0;
-                    let totalExpenses = 0;
-                    let totalNetProfit = 0;
-                    
-                    Object.values(dailyData).forEach(data => {
-                        totalRevenue += data.revenue;
-                        totalCost += data.cost;
-                        totalExpenses += data.expenses;
-                        totalNetProfit += data.netProfit;
-                    });
-                    
-                    // Update summary cards
-                    document.getElementById('total-revenue').textContent = 'Rp' + totalRevenue.toLocaleString('id-ID');
-                    document.getElementById('total-cost').textContent = 'Rp' + totalCost.toLocaleString('id-ID');
-                    document.getElementById('total-expenses').textContent = 'Rp' + totalExpenses.toLocaleString('id-ID');
-                    document.getElementById('total-profit').textContent = 'Rp' + totalNetProfit.toLocaleString('id-ID');
-                    
-                    // Load table
-                    profitTableBody.innerHTML = '';
-                    
-                    const sortedDates = Object.keys(dailyData).sort((a, b) => b.localeCompare(a));
-                    
-                    if (sortedDates.length === 0) {
-                        profitTableBody.innerHTML = `
-                            <tr>
-                                <td colspan="6" class="px-6 py-4 text-center text-gray-500">Tidak ada data untuk periode yang dipilih</td>
-                            </tr>
-                        `;
-                    } else {
-                        sortedDates.forEach(date => {
-                            const data = dailyData[date];
-                            const tr = document.createElement('tr');
-                            
-                            const dateObj = new Date(date);
-                            const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth()+1}/${dateObj.getFullYear()}`;
-                            
-                            tr.innerHTML = `
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${formattedDate}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp${data.revenue.toLocaleString('id-ID')}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp${data.cost.toLocaleString('id-ID')}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-orange-600">Rp${data.expenses.toLocaleString('id-ID')}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">Rp${data.netProfit.toLocaleString('id-ID')}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${data.count}</td>
-                            `;
-                            
-                            profitTableBody.appendChild(tr);
-                        });
-                    }
-                } catch (error) {
-                    console.error("Gagal mengambil data profit:", error);
-                }
-            }
+           async function loadProducts() {
+               try {
+                   const snapshot = await get(ref(database, 'products'));
+                   const products = snapshot.val() || [];
+                   productTableBody.innerHTML = '';
+                   
+                   products.forEach(product => {
+                       const tr = document.createElement('tr');
+                       
+                       // Calculate total stock and variants count
+                       const totalStock = product.variants ? product.variants.reduce((sum, v) => sum + v.stock, 0) : 0;
+                       const variantsCount = product.variants ? product.variants.length : 0;
+                       
+                       tr.innerHTML = `
+                           <td class="px-6 py-4 whitespace-nowrap">
+                               <div class="flex items-center">
+                                   <div class="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                       <span class="text-gray-600">${product.name.charAt(0)}</span>
+                                   </div>
+                                   <div class="ml-4">
+                                       <div class="text-sm font-medium text-gray-900">${product.name}</div>
+                                       <div class="text-sm text-gray-500">ID: ${product.id}</div>
+                                   </div>
+                               </div>
+                           </td>
+                           <td class="px-6 py-4 whitespace-nowrap">
+                               <div class="text-sm text-gray-900 capitalize">${product.category}</div>
+                           </td>
+                           <td class="px-6 py-4 whitespace-nowrap">
+                               <div class="text-sm text-gray-900">Rp${product.price.toLocaleString('id-ID')}</div>
+                           </td>
+                           <td class="px-6 py-4 whitespace-nowrap">
+                               <div class="text-sm text-gray-900">Rp${product.cost.toLocaleString('id-ID')}</div>
+                           </td>
+                           <td class="px-6 py-4 whitespace-nowrap">
+                               <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${totalStock < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                                   ${totalStock}
+                               </span>
+                           </td>
+                           <td class="px-6 py-4 whitespace-nowrap">
+                               <div class="text-sm text-gray-900">${variantsCount} variasi</div>
+                               <button class="view-variants text-blue-600 hover:text-blue-900 text-xs" data-id="${product.id}">Lihat Detail</button>
+                           </td>
+                           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                               <button class="edit-product text-blue-600 hover:text-blue-900 mr-3" data-id="${product.id}">Edit</button>
+                               <button class="delete-product text-red-600 hover:text-red-900" data-id="${product.id}">Hapus</button>
+                           </td>
+                       `;
+                       
+                       productTableBody.appendChild(tr);
+                   });
+                   
+                   // Add event listeners for buttons
+                   document.querySelectorAll('.view-variants').forEach(btn => {
+                       btn.addEventListener('click', function() {
+                           const productId = this.getAttribute('data-id');
+                           viewProductVariants(productId);
+                       });
+                   });
+                   
+                   document.querySelectorAll('.edit-product').forEach(btn => {
+                       btn.addEventListener('click', function() {
+                           const productId = this.getAttribute('data-id');
+                           editProduct(productId);
+                       });
+                   });
+                   
+                   document.querySelectorAll('.delete-product').forEach(btn => {
+                       btn.addEventListener('click', function() {
+                           const productId = this.getAttribute('data-id');
+                           deleteProduct(productId);
+                       });
+                   });
+               } catch (error) {
+                   console.error("Gagal mengambil data products:", error);
+               }
+           }
 
-        }, 1000); // Wait for Firebase to initialize
-    </script>
+           async function viewProductVariants(id) {
+               try {
+                   const snapshot = await get(ref(database, 'products'));
+                   const products = snapshot.val() || [];
+                   const product = products.find(p => p.id == id);
+                   
+                   if (product && product.variants) {
+                       let variantsList = product.variants.map(v => 
+                           `${v.color} - ${v.size}: ${v.stock} pcs`
+                       ).join('\n');
+                       
+                       alert(`Variasi ${product.name}:\n\n${variantsList}`);
+                   }
+               } catch (error) {
+                   console.error("Gagal mengambil data variasi:", error);
+               }
+           }
+
+           async function editProduct(id) {
+               try {
+                   const snapshot = await get(ref(database, 'products'));
+                   const products = snapshot.val() || [];
+                   const product = products.find(p => p.id == id);
+                   
+                   if (product) {
+                       document.getElementById('modal-title').textContent = 'Edit Produk';
+                       document.getElementById('product-id').value = product.id;
+                       document.getElementById('product-name').value = product.name;
+                       document.getElementById('product-price').value = product.price;
+                       document.getElementById('product-cost').value = product.cost;
+                       document.getElementById('product-category').value = product.category;
+                       
+                       // Load variants
+                       currentProductVariants = product.variants ? product.variants.map((v, index) => ({
+                           id: Date.now() + index,
+                           color: v.color,
+                           size: v.size,
+                           stock: v.stock
+                       })) : [];
+                       
+                       updateVariantsTable();
+                       productModal.classList.remove('hidden');
+                   }
+               } catch (error) {
+                   console.error("Gagal mengambil data produk untuk edit:", error);
+               }
+           }
+
+           async function deleteProduct(id) {
+               if (confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
+                   try {
+                       const snapshot = await get(ref(database, 'products'));
+                       const products = snapshot.val() || [];
+                       const filteredProducts = products.filter(p => p.id != id);
+                       
+                       await set(ref(database, 'products'), filteredProducts);
+                       
+                       loadProducts();
+                       updateProductSelects();
+                       loadDashboard();
+                   } catch (error) {
+                       console.error("Gagal menghapus produk:", error);
+                       alert('Terjadi kesalahan saat menghapus produk.');
+                   }
+               }
+           }
+
+           async function loadStockHistory() {
+               try {
+                   const stockSnapshot = await get(ref(database, 'stockHistory'));
+                   const history = Object.values(stockSnapshot.val() || {});
+                   
+                   const productsSnapshot = await get(ref(database, 'products'));
+                   const products = productsSnapshot.val() || [];
+                   
+                   stockHistory.innerHTML = '';
+                   
+                   if (history.length === 0) {
+                       stockHistory.innerHTML = '<p class="text-gray-500">Belum ada riwayat penyesuaian stok.</p>';
+                       return;
+                   }
+                   
+                   // Show only last 10 entries
+                   const recentHistory = [...history].reverse().slice(0, 10);
+                   
+                   recentHistory.forEach(entry => {
+                       const product = products.find(p => p.id == entry.productId);
+                       const typeText = entry.type === 'add' ? 'Penambahan' : 
+                                       entry.type === 'subtract' ? 'Pengurangan' : 'Penetapan';
+                       
+                       const entryEl = document.createElement('div');
+                       entryEl.className = 'p-3 bg-gray-50 rounded';
+                       
+                       entryEl.innerHTML = `
+                           <div class="flex justify-between items-start">
+                               <div>
+                                   <h4 class="font-medium">${product ? product.name : 'Produk dihapus'}</h4>
+                                   <p class="text-sm text-gray-500">${entry.color} - ${entry.size}</p>
+                                   <p class="text-sm text-gray-500">${typeText} stok: ${entry.amount}</p>
+                                   <p class="text-sm text-gray-500">Stok: ${entry.oldStock} → ${entry.newStock}</p>
+                                   ${entry.notes ? `<p class="text-sm mt-1">Catatan: ${entry.notes}</p>` : ''}
+                               </div>
+                               <div class="text-xs text-gray-500">${entry.date}</div>
+                           </div>
+                       `;
+                       
+                       stockHistory.appendChild(entryEl);
+                   });
+               } catch (error) {
+                   console.error("Gagal mengambil data stock history:", error);
+               }
+           }
+
+           async function loadProfitData() {
+               try {
+                   const transactionsSnapshot = await get(ref(database, 'transactions'));
+                   const allTransactions = Object.values(transactionsSnapshot.val() || {});
+                   
+                   const expensesSnapshot = await get(ref(database, 'expenses'));
+                   const allExpenses = expensesSnapshot.val() || {};
+                   
+                   const startDate = document.getElementById('filter-start-date').value;
+                   const endDate = document.getElementById('filter-end-date').value;
+                   
+                   let filteredTransactions = allTransactions.filter(t => t.type === 'out');
+                   
+                   if (startDate) {
+                       filteredTransactions = filteredTransactions.filter(t => t.date >= startDate);
+                   }
+                   
+                   if (endDate) {
+                       filteredTransactions = filteredTransactions.filter(t => t.date <= endDate);
+                   }
+                   
+                   // Group by date
+                   const dailyData = {};
+                   
+                   filteredTransactions.forEach(t => {
+                       if (!dailyData[t.date]) {
+                           dailyData[t.date] = {
+                               revenue: 0,
+                               cost: 0,
+                               grossProfit: 0,
+                               expenses: 0,
+                               netProfit: 0,
+                               count: 0
+                           };
+                       }
+                       
+                       dailyData[t.date].revenue += t.total;
+                       dailyData[t.date].cost += t.quantity * (t.cost || 0);
+                       dailyData[t.date].count += 1;
+                   });
+                   
+                   // Add expenses to daily data
+                   Object.keys(dailyData).forEach(date => {
+                       const dailyExpenses = allExpenses[date] ? allExpenses[date].total : 0;
+                       dailyData[date].expenses = dailyExpenses;
+                       dailyData[date].grossProfit = dailyData[date].revenue - dailyData[date].cost;
+                       dailyData[date].netProfit = dailyData[date].grossProfit - dailyData[date].expenses;
+                   });
+                   
+                   // Calculate totals
+                   let totalRevenue = 0;
+                   let totalCost = 0;
+                   let totalExpenses = 0;
+                   let totalNetProfit = 0;
+                   
+                   Object.values(dailyData).forEach(data => {
+                       totalRevenue += data.revenue;
+                       totalCost += data.cost;
+                       totalExpenses += data.expenses;
+                       totalNetProfit += data.netProfit;
+                   });
+                   
+                   // Update summary cards
+                   document.getElementById('total-revenue').textContent = 'Rp' + totalRevenue.toLocaleString('id-ID');
+                   document.getElementById('total-cost').textContent = 'Rp' + totalCost.toLocaleString('id-ID');
+                   document.getElementById('total-expenses').textContent = 'Rp' + totalExpenses.toLocaleString('id-ID');
+                   document.getElementById('total-profit').textContent = 'Rp' + totalNetProfit.toLocaleString('id-ID');
+                   
+                   // Load table
+                   profitTableBody.innerHTML = '';
+                   
+                   const sortedDates = Object.keys(dailyData).sort((a, b) => b.localeCompare(a));
+                   
+                   if (sortedDates.length === 0) {
+                       profitTableBody.innerHTML = `
+                           <tr>
+                               <td colspan="6" class="px-6 py-4 text-center text-gray-500">Tidak ada data untuk periode yang dipilih</td>
+                           </tr>
+                       `;
+                   } else {
+                       sortedDates.forEach(date => {
+                           const data = dailyData[date];
+                           const tr = document.createElement('tr');
+                           
+                           const dateObj = new Date(date);
+                           const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth()+1}/${dateObj.getFullYear()}`;
+                           
+                           tr.innerHTML = `
+                               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${formattedDate}</td>
+                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp${data.revenue.toLocaleString('id-ID')}</td>
+                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp${data.cost.toLocaleString('id-ID')}</td>
+                               <td class="px-6 py-4 whitespace-nowrap text-sm text-orange-600">Rp${data.expenses.toLocaleString('id-ID')}</td>
+                               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">Rp${data.netProfit.toLocaleString('id-ID')}</td>
+                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${data.count}</td>
+                           `;
+                           
+                           profitTableBody.appendChild(tr);
+                       });
+                   }
+               } catch (error) {
+                   console.error("Gagal mengambil data profit:", error);
+               }
+           }
+
+       }, 1000); // Wait for Firebase to initialize
+   </script>
 </body>
 </html>
